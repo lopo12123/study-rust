@@ -92,9 +92,59 @@ color = "> 0.6.0, < 0.8.0"
 
 ### Rust
 
-> `unwrap` 和 `expect`
+> 变量
 
-**错误处理**
+**变量与可变性**
+
+- 声明变量使用 `let` 关键字
+- 默认情况下变量是不可变(_immutable_)的
+- 声明变量时在变量前加上 `mut`, 使变量可变
+
+```rust
+fn mut_and_immut() {
+    let immut_variable = 1;
+    let mut mut_variable = 1;
+    // immut_variable = 2;  // panic
+    mut_variable = 2;  // correct
+}
+```
+
+**变量与常量**
+
+- 常量(_constant_)在绑定值后也是不可变的, 但它与不可变变量有很多区别:
+    - 不可以使用 `mut`, 常量是永远不可变的
+    - 声明常量使用 `const` 关键字, 他的类型必须被标注
+    - 常量可以在任意作用域内进行声明, 包括全局作用域
+    - 常量只可以绑定到常量表达式, 无法绑定到函数的调用结果或只能在运行时才能计算得到的值
+- 在程序运行期间, 常量在其声明的作用域内一直有效
+- 命名规范: **Rust**里的常量使用全大写字母, 单词间使用下划线分隔. 例: `const MAX_POINTS: u32 = 10_000;`
+
+```rust
+fn var_and_const() {
+    const MAX_POINTS: [i32; 2] = [0, 0];
+    // const mut MAX_POINTS_MUT: [i32; 2] = [0, 0];  // error
+}
+```
+
+**重影 _Shadowing_**
+
+- 可以使用相同的名字声明新的变量(新的类型、新的值), 新的变量会重影(`shadow`)之前声明的变量
+- `shadow` 和把变量标记为 `mut`是不一样的:
+    - 如果不使用 `let` 关键字, 那么重新给非 `mut` 的变量赋值会导致编译时错误
+    - 而使用 `let` 声明同名新变量, 也是不可变的
+    - 使用 `let` 声明的新变量, 可以为新的类型/新的值
+
+```rust
+fn shadow() {
+    let what_type: u32 = 1;  // u32
+    let what_type: &str = "1";  // &str
+    let what_type: bool = false;  // bool
+}
+```
+
+> 错误处理
+
+`unwrap` 和 `expect`
 
 - `unwrap(self)`:
     - 如果成功, 则直接返回 `Result::Ok` 里的值,
