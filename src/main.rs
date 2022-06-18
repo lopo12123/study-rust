@@ -1,3 +1,10 @@
+mod guess_number;
+
+use guess_number::GuessNumber;
+
+#[allow(unused_variables)]
 fn main() {
-    println!("Hello, world!");
+    println!("start!");
+
+    GuessNumber::guess();
 }
