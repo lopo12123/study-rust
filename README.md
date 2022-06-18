@@ -89,3 +89,25 @@ hammer = "0.5.0"
 # 指定包的版本范围
 color = "> 0.6.0, < 0.8.0"
 ```
+
+### Rust
+
+> `unwrap` 和 `expect`
+
+**错误处理**
+
+- `unwrap(self)`:
+    - 如果成功, 则直接返回 `Result::Ok` 里的值,
+    - 如果失败, 则调用 `panic!` 宏中止程序.
+- `expect(self, msg: &str)`:
+    - 接受一个字符串参数(切片类型), 当结果为`Result::Error`的时候输出.
+    - 如果成功, 则直接返回 `result` 里的值,
+    - 如果失败, 则输出`expect`的入参并调用 `panic!` 宏中止程序.
+- `result` 的结构如下:
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Error(E),
+}
+```
