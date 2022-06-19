@@ -418,6 +418,16 @@ fn move_and_clone_example() {
         - 字符串切片的范围索引必须发生在有效的 `UTF-8` 字符边界内
         - 如果尝试从一个多字节的字符中创建切片, 则会引发 `panic`
 
+```rust
+fn slice_example() {
+    let string = String::from("Hello world!");
+    let arr = [1, 2, 3, 4, 5];
+
+    let str_slice = &string[1..4];  // ell
+    let arr_slice = &arr[2..5];  // [3, 4, 5] 
+}
+```
+
 ### 错误处理
 
 `unwrap` 和 `expect`
