@@ -91,7 +91,7 @@ color = "> 0.6.0, < 0.8.0"
 - 声明变量时在变量前加上 `mut`, 使变量可变
 
 ```rust
-fn mut_and_immut() {
+fn mut_example() {
     let immut_variable = 1;
     let mut mut_variable = 1;
     // immut_variable = 2;  // panic
@@ -110,7 +110,7 @@ fn mut_and_immut() {
 - 命名规范: **Rust**里的常量使用全大写字母, 单词间使用下划线分隔. (例: `const MAX_POINTS: u32 = 10_000;`)
 
 ```rust
-fn var_and_const() {
+fn const_example() {
     const MAX_POINTS: [i32; 2] = [0, 0];
     // const mut MAX_POINTS_MUT: [i32; 2] = [0, 0];  // error
 }
@@ -125,7 +125,7 @@ fn var_and_const() {
     - 使用 `let` 声明的新变量, 可以为新的类型/新的值
 
 ```rust
-fn shadow() {
+fn shadow_example() {
     let what_type: u32 = 1;  // u32
     let what_type: &str = "1";  // &str
     let what_type: bool = false;  // bool
@@ -196,7 +196,7 @@ fn shadow() {
 - 数值操作
 
 ```rust
-fn calculate() {
+fn calculate_example() {
     let sum = 5 + 10;
     let difference = 95.5 - 33.2;
     let product = 4 * 30;
@@ -221,7 +221,7 @@ fn calculate() {
 - 但 `Unicode` 中没有 _字符_ 的概念, 所以直觉上的字符与 **Rust** 中的字符概念并不相符
 
 ```rust
-fn character() {
+fn char_example() {
     let x = 'x';
     let y: char = 'お';
     let z = '😂';
@@ -314,13 +314,109 @@ fn array_example() {
 - `for` 循环
 
 ```rust
-fn for_loop() {
+fn for_example() {
     let a = [10, 20, 30, 40, 50];
     for element in a.iter() {
         println!("{}", element);
     }
 }
 ```
+
+### 所有权
+
+- **Rust** 的核心特性就是所有权
+- 所有语言在运行时都必须管理他们使用计算机内存的方式
+    - 有的语言有垃圾收集机制(`Gabrage Collect, GC`), 在程序运行时会不断寻找不再使用的内存. 如: `C#`, `Java`, `JavaScript` 等
+    - 有的语言必须显式地分配和释放内存. 如: `C`, `C++` 等
+    - **Rust** 使用了第三种方式, 通过一个所有权系统来管理, 其包含了一组编译器在编译时检查的规则
+- 栈`Stack` vs 堆`Heap`
+    - `Stack` 按值的接受顺序来存储, 按相反顺序将他们移除(**LIFO**)
+    - 所有存储在 `Stack` 上的数据必须拥有已知且固定的大小
+        - 编译时大小未知的数据或运行时大小可能发生改变的数据都必须存放在 `Heap` 中
+    - `Heap` 内存组织性差一些
+        - 当把数据放入 `Heap` 时, 会请求一定数量的空间
+        - 操作系统在 `Heap` 中找到一块足够大的空间, 将其标记为在用, 并返回该空间的地址
+- 所有权解决的问题
+    - 跟踪代码中哪些部分正在使用 `Heap` 的哪些数据
+    - 最小化 `Heap` 上的重复数据量
+    - 清理 `Heap` 上未使用的数据以避免空间不足
+    - 所有权存在的原因: 管理 `Heap` 数据
+- 所有权规则
+    - 每个值都有一个变量, 这个变量是该值的**所有者**
+    - 每个值同时只能有一个所有者
+    - 当所有者超出**作用域**(`scope`)时, 该值将被删除
+    - 变量的作用域就是程序中一个项目的有效范围
+    - 当变量离开作用域时会自动执行一个 `drop` 函数
+
+> 变量和数据交互的方式
+
+- 移动(`Move`)
+    - 多个变量可以与同一个数据使用一种独特的方式来交互
+- 克隆(`Clone`)
+- 复制(`Copy`)
+    - `Copy trait` 可以用于像整数这样完全存放在 `Stack` 上的类型
+    - 如果一个类型实现了 `Copy` 这个 `trait`, 那么复制之后旧的变量任然可用
+    - 如果一个类型或该类型的一部分实现了 `Drop trait`, 那么 **Rust** 不允许让它再去实现 `Copy trait`
+    - 任何简单标量的组合类型都是可以 `Copy` 的
+    - 任何需要分配内存或某种资源的都不是可 `Copy` 的
+    - 一些具有 `Copy trait` 的类型
+        - 所有的整数类型, 如 `u32`
+        - 所有的浮点类型, 如 `f64`
+        - `bool`
+        - `char`
+        - `Tuple` (如果其所有字段都是可 `Copy` 的, 那么它也是可 `Copy` 的)
+
+```rust
+fn move_and_clone_example() {
+    // 简单标量(在栈上的数据), 发生复制
+    let x = 5;
+    let y = x;
+    println!("x: {}, y: {}", x, y);  // x: 5, y: 5
+
+    // 在堆上的数据, 所有权发生转移, s2赋值后s1将失效
+    let s1 = String::new("rust");
+    let s2 = s1;
+    println!("s1: {}, s2: {}", s1, s2);  // panic: borrow of moved value "s1"
+
+    // 克隆
+    let s3 = s1.clone();
+    println!("s1: {}, s3: {}", s1, s3);  // s1: rust, s3: rust
+}
+```
+
+> 所有权与函数
+
+- 在语义上, 将值传递给函数和将值赋值给变量是类似的(值会发生**移动**或**复制**)
+- 函数的返回值在过程中同样也会发生所有权的转移
+- 一个变量的所有权总是遵循相同的模式
+    - 将一个值赋值给其他变量时就会发生移动
+    - 当一个包含 `Heap` 的数据的变量离开作用域时, 它的值就会被 `drop` 函数清理(除非数据所有权移动到了另一个变量上)
+
+> 引用和借用
+
+- `&` 符号表示引用: 允许引用某些之但不获得其所有权
+- 把引用作为函数参数的行为叫借用
+- 不能修改借用的变量, 引用默认也是不可变的
+- 可变引用 `&mut`
+    - 可变引用有一个重要限制: 在特定作用域内, 对某一数据只能有一个可变引用(可以在编译时防止数据竞争)
+    - 另一个限制: 不可以同时拥有一个可变引用和一(多)个不可变引用
+
+> 切片
+
+- **Rust** 的另一种不持有所有权的数据类型
+- 形式: `&Origin[start, end]`
+    - 开始索引就是切片起始位置的索引值
+    - 结束索引是切片结束位置的下一个索引值
+- 语法糖
+    - 切片包含字符串头部: `&Origin[..end]`
+    - 切片包含字符串尾部: `&Origin[start..]`
+    - 切片包含字符串全部: `&Origin[..]`
+- 字符串切片
+    - 是指向字符串中一部分内容的引用
+    - 字符串字面量的变量类型是 `&str`, 是一个指向二进制程序特定位置的切片, 是不可变引用
+    - 注意
+        - 字符串切片的范围索引必须发生在有效的 `UTF-8` 字符边界内
+        - 如果尝试从一个多字节的字符中创建切片, 则会引发 `panic`
 
 ### 错误处理
 
