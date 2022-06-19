@@ -310,6 +310,27 @@ fn array_example() {
     - 若想提前返回, 则使用 `return` 关键字, 并指定一个值
         - 大多数函数都是默认使用最后一个表达式作为返回值
 
+### 控制流
+
+- `if` 表达式
+    - `if` 表达式允许根据条件执行不同的分支代码, 这个条件**必须**是 `bool` 类型的
+    - 三目用法 `let a = if condition { x } else { y };`
+- `loop` 表达式
+    - `loop` 关键字反复执行一块代码直到停止循环
+    - 可以在 `loop` 循环中使用 `break` 关键字来告诉程序何时停止循环
+    - `breal` 退出循环可以返回值 `let a = loop { break 3; };`
+- `while` 条件循环
+    - 每次循环前都判断一次条件
+- `for` 循环
+
+```rust
+fn for_loop() {
+    let a = [10, 20, 30, 40, 50];
+    for element in a.iter() {
+        println!("{}", element);
+    }
+}
+```
 
 ### 错误处理
 
