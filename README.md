@@ -1,8 +1,6 @@
 ## Cargo
 
-> `cargo new`
-
-**新建项目** `cargo new project_name`
+> **新建项目** `cargo new project_name`
 
 - 项目结构:
 
@@ -15,9 +13,7 @@ project_name
 - Cargo.lock
 ```
 
-> `cargo build`
-
-**构建项目** `cargo build`
+> **构建项目** `cargo build`
 
 - 在目标路径生成可执行文件.
 - 路径: `target/debug/project_name.exe` \(windows\)
@@ -27,22 +23,16 @@ project_name
 - 编译时会进行优化, 代码会运行的更快, 但编译时间更长.
 - 会在 `target/release` 下生成可执行文件, 而不是 `target/debug`
 
-> `cargo run`
-
-**构建并运行项目** `cargo run`
+> **构建并运行项目** `cargo run`
 
 - 如果项目编译过但未修改, 则会直接运行二进制文件, 不会重复编译.
 
-> `cargo check`
-
-**检查代码** `cargo check`
+> **检查代码** `cargo check`
 
 - 检查代码, 确保能通过编译, 但不会产生任何可执行文件.
 - `cargo check` 比 `cargo build` 快得多, 能连续反复的使用 `cargo check` 检查代码, 提高效率.
 
-> `Cargo.toml` _Tom`s Obvious, Minimal Language_
-
-Cargo项目的配置文件格式
+> 配置文件 `Cargo.toml` _Tom`s Obvious, Minimal Language_
 
 - 常见字段含义:
 
