@@ -491,8 +491,7 @@ fn tuple_struct_example() {
     - 方法是在 `struct`(或 `enum`, `trait` 对象)的上下文中定义 (在 `impl` 中实现)
     - 第一个参数是 `self`(或 `&self`, `&mut self`), 表示方法被调用的 `struct` 实例
 - 可以在 `impl` 块里定义不把 `self` 作为第一个参数的函数, 他们叫做关联函数
-  - 关联函数通常用于构造器(例: `String::from()`)
-
+    - 关联函数通常用于构造器(例: `String::from()`)
 
 ```rust
 struct Rectangle {
@@ -503,6 +502,93 @@ struct Rectangle {
 impl Rectangle {
     fn area(&self) -> u32 {
         self.width * self.height
+    }
+}
+```
+
+### 枚举与模式匹配
+
+> 枚举 `enum`
+
+```rust
+// 定义
+enum IpKind {
+    V4,
+    V6,
+}
+
+enum IpKindValue {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+
+// 方法
+impl IpKindValue {
+    fn call(&self) {
+        println!("{:?}", self);
+    }
+}
+
+// 使用
+fn ip_enum_example() {
+    let ipv4 = IpKind::V4;
+    let ipv6 = IpKind::V6;
+
+    let ipv4_val = IpKindValue::V4(0, 0, 0, 0);
+    let ipv6_val = IpKindValue::V6(String::from("0::0"));
+
+    ipv6_val.call();
+}
+
+// Option 枚举
+// 处理其他语言的 null 情况
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+
+> 模式匹配
+
+> > `match`
+
+- 允许一个值与一系列模式进行匹配, 并执行匹配的模式对应的代码
+- 模式可以是字面量、变量名、通配符等
+
+```rust
+fn match_example() {
+    let v: u8 = 3;
+    match v {
+        // 一行语句: 可以直接写
+        1 => println!("one"),
+        // 多行语句: 包裹在块内
+        2 => {
+            println!("two");
+            println!("two");
+        }
+        // 无关内容: 用 _ 通配匹配
+        _ => {
+            println!("more then 2");
+        }
+    }
+}
+```
+
+> > `if let`
+
+- 只关心一种匹配而忽略其他匹配的情况
+- 更少的代码、更少的缩进、更少的模板代码
+- 放弃了穷举的可能
+- 可以搭配 `else`
+
+```rust
+fn if_let_example() {
+    let v: u8 = 2;
+
+    if let 0 = v % 2 {
+        println!("even");
+    } else {
+        println!("odd");
     }
 }
 ```
