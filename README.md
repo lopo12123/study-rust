@@ -484,6 +484,29 @@ fn tuple_struct_example() {
 }
 ```
 
+> `Struct` 的 方法 / 关联函数
+
+- 方法和函数类似: `fn` 关键字、名称、参数、返回值
+- 方法和函数不同之处
+    - 方法是在 `struct`(或 `enum`, `trait` 对象)的上下文中定义 (在 `impl` 中实现)
+    - 第一个参数是 `self`(或 `&self`, `&mut self`), 表示方法被调用的 `struct` 实例
+- 可以在 `impl` 块里定义不把 `self` 作为第一个参数的函数, 他们叫做关联函数
+  - 关联函数通常用于构造器(例: `String::from()`)
+
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+```
+
 ### 错误处理
 
 `unwrap` 和 `expect`
