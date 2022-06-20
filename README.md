@@ -428,6 +428,62 @@ fn slice_example() {
 }
 ```
 
+### 结构体
+
+- `struct` 结构体
+    - 自定义的数据类型
+    - 为相关联的值命名, 打包 => 有意义的组合
+    - 一旦 `struct` 是可变的, 则结构体中的所有字段都是可变的
+- 定义
+    - 使用 `struct` 关键字, 并为整个结构体命名
+    - 在花括号内为所有字段(`field`)定义名称和类型
+- 实例化
+    - 为每个字段指定具体值
+    - 无需按声明的顺序指定
+- 访问
+    - 使用点标记法 `struct_name.field_name`
+- 其他
+    - 字段简写: 构造时同 `js`
+    - 更新: 类似 `js` 对象解构
+    - `Tuple struct`
+        - 可以定义类似 `tuple` 的 `struct`, 叫做 `tuple struct`
+        - `tuple struct` 整体有名, 但里面的元素没有名
+        - 适用: 想给整个 `tuple` 起名, 并让它不同于其他 `tuple`, 而且又不需要给每个元素起名
+    - `Unit-Like Struct` (没有任何字段)
+        - 可以定义没有任何字段的 `struct`, 叫做 `Unit-Like struct`(因为与`()`, 单元类型类似)
+        - 使用: 在某个类型上实现某个 `trait`, 但又没有数据需要存储
+
+```rust
+// 定义
+struct User {
+    username: String,
+    email: String,
+    account: u64,
+    active: bool,
+}
+
+fn struct_example() {
+    // 实例化
+    let user = User {
+        username: String::from("name"),
+        email: String::from("email@example.com"),
+        account: 123456789,
+        active: true
+    };
+}
+
+// tuple struct
+struct Color(i32, i32, i32);
+
+struct Point(i32, i32, i32);
+
+fn tuple_struct_example() {
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+    // black 和 origin 是不同类型(他们是不同的 tuple struct 的实例)
+}
+```
+
 ### 错误处理
 
 `unwrap` 和 `expect`
