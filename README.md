@@ -593,6 +593,120 @@ fn if_let_example() {
 }
 ```
 
+### 模块系统
+
+- **Rust** 的模块系统
+    - `Package`(包): `Cargo` 的特性, 能够构建、测试、共享 `crate`
+    - `Crate`(单元包): 一个模块树, 可以产生一个 `library` 或可执行文件
+    - `Module`(模块)、`use`: 能够控制代码的组织、作用域、私有路径
+    - `Path`(路径): 为 `struct`、`function`、`module`等命名的方式
+
+> `Cargo` 的惯例
+
+- `src/main.rs` 是 `binary crate` 的 `crate root`, 且 `crate` 名与 `package` 名相同
+- `src/lib.rs` 是 `library crate` 的 `crate root`, 且 `crate` 名与 `package` 名相同
+- 一个 `package` 可以同时包含 `src/main.rs` 和 `src.lib.rs`
+    - 一个 `binary crate`, 一个 `library crate`
+- 一个 `package` 可以包含多个 `binary crate`
+    - 文件放在 `src/bin`
+    - 每个文件都是单独的 `binary crate`
+
+> `Package`
+
+- 一个 `Package` 包含 - **1** 个 `Cargo.toml`, 他描述了如何构建这些 `crate`
+- 只能包含 **0-1** 个 `library crate`
+- 可以包含 **任意数量** 的 `binary crate`
+- 必须至少包含一个 `crate`(`binary` 或 `library`)
+
+> `Crate`
+
+- 类型: `binary` 或 `library`
+- 作用: 将相关功能放到一个作用域内, 便于在项目间进行共享(防止冲突)
+- `crate Root` 是源代码文件, **Rust** 编译器从这里开始构建 `crate` 根的 `Module`
+
+> `Module`
+
+- 在一个 `crate` 内, 将代码进行分组
+- 使用 `mod` 关键字, 可嵌套
+- 可以包含其他项(`struct`, `enum`, `trait`, 常量, 函数等)的定义
+
+> `Path`
+
+- 为了在 **Rust** 的模块中找到某个条目, 需要使用路径
+- 路径的两种形式
+    - 绝对路径: 从 `crate root` 开始, 使用 `crate` 名 或字面量 `crate`
+    - 相对路径: 从当前模块开始, 使用 `self`, `super` 或当前模块的标识符
+- 路径至少由一个标识符组成, 标识符之间使用 `::`
+
+> 私有边界 `privacy boundary`
+
+- 模块不仅可以组织代码, 还可以定义私有边界
+- 如果想把函数 或 `struct` 等设为私有, 可以将它放到某个模块中
+- **Rust** 中的所有条目(函数, 方法, 常量, 模块, `struct`, `enum` 等)默认是私有的
+- 父级模块无法访问子模块中的私有条目
+- 子模块可以使用所有祖先模块中的条目
+- 模块定义时, 如果模块后面是 `;` 而不是代码块
+    - **Rust** 会从与模块同名的文件中加载内容
+    - 模块树的结构不会变化
+- 关键字
+    - `pub` 暴露公共
+    - `super` 访问父级模块中的内容, 类似文件系统中的 `..`
+    - `pub struct`
+        - `struct` 是公共的
+        - `struct` 的字段默认是私有的
+    - `pub enum`
+        - `enum` 是公共的
+        - `enum` 的变体默认也是公共的
+    - `use`
+        - 可以使用 `use` 关键字将路径导入到作用域内
+        - 仍遵循私有性原则
+        - `as`: alias, like js (esm: `import * as customName from "..."`)
+        - `pub use`: re-export, like js (esm: `export * from "..."`)
+        - `use std::{self, fmt, cmp};`: part-use, like js (esm: `import { classA, classB } from "...""`)
+        - `use std::*;`: use all, like js (esm: `import * from "..."`)
+
+```rust
+/// module_in_other_file.file
+pub fn function_in_other_file() {}
+
+/// lib.rs
+mod module_in_other_file;
+
+mod outer_module {
+    pub mod inner_module {
+        pub fn inner_function() {}
+    }
+
+    pub struct StructExample {
+        private_item: i32,
+        pub public_item: i32,
+    }
+
+    pub enum EnumExample {
+        DefaultToPublic,
+        NoNeedOfPub
+    }
+
+    fn super_example() {
+        super::path_example()
+    }
+}
+
+pub fn path_example() {
+    // absolute
+    crate::outer_module::inner_module::inner_function();
+
+    // relative
+    outer_module::inner_module::inner_function();
+}
+
+fn use_example() {
+    use outer_module::inner_module;
+
+    inner_module::inner_function();
+}
+```
+
 ### 错误处理
 
 `unwrap` 和 `expect`
