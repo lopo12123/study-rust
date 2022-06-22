@@ -670,7 +670,8 @@ fn if_let_example() {
 pub fn function_in_other_file() {}
 
 /// lib.rs
-mod module_in_other_file;
+// 用下行语句引入外部文件的 module
+// mod module_in_other_file;
 
 mod outer_module {
     pub mod inner_module {
@@ -704,6 +705,168 @@ fn use_example() {
     use outer_module::inner_module;
 
     inner_module::inner_function();
+}
+```
+
+### 常用集合
+
+> `Vector`
+
+- 类型为 `Vec<T>`
+- 由标准库提供
+- 可存储多个值
+- 只能存储相同类型的数据
+- 值在内存中连续存放
+
+```rust
+fn vector_example() {
+    // 创建
+    // let mut v: Vec<i32> = Vec::new();
+    let mut v = vec![1, 2, 3];
+
+    // 更新
+    v.push(4);
+    v.push(5);
+
+    // 引用
+    // - 索引访问 (越界会 panic)
+    let third_1: &i32 = &v[2];
+    // - get 访问 (越界则为 None)
+    let third_2 = match v.get(2) {
+        Some(val) => val,
+        None => None
+    };
+
+    // 遍历 - for 循环
+    // - 不可变引用 循环
+    for val in &v {
+        print!("{}", val);  // -> 1 2 3 4 5
+    }
+    // - 可变引用 循环
+    for val in &mut v {
+        *val += 10;
+        print!("{}", i);  // -> 11 12 13 14 15
+    }
+}
+```
+
+> `String`
+
+- **Rust** 的 **核心语言层面**, 只有一个字符串类型: 字符串切片 `&str`
+    - 字符串切片: 对存储在其他地方的 `UTF-8` 编码的字符串的引用
+    - 字符串字面量: 存储在二进制文件中的字符串切片
+- `String` 类型
+    - 来自 **标准库** 而不是核心语言
+    - 可增长、可修改、可获得所有权
+    - `UTF-8` 编码
+    - 是对 `Vec<u8>` 的包装, `len()` 方法 返回的是 `Unicode` 标量值, 而非常规意义的字符数 (不支持索引形式访问, 用索引方式进行访问会报错)
+- 字节`Bytes`、标量值`Scalar Values`、字形簇`Grapheme Clusters`
+    - 遍历字节 `for b in s.bytes() {}`
+    - 遍历`Unicode`标量值 `for c in s.chars() {}`
+    - 遍历字形簇 `无标准库提供`
+
+```rust
+fn string_example() {
+    // 创建
+    // - 使用 ::new 方法创建
+    let s1 = String::new();
+    // - 使用 to_string 方法
+    let s2 = "hello".to_string();
+    // - 使用 ::from 方法创建
+    let mut s3 = String::from("hello");
+
+    // 更新
+    // - push_str 把字符串切片附加到 String
+    s3.push_str(" world");
+    println!("{}", s3);  // -> hello world
+    // - push 把单个字符附加到 String
+    s3.push('!');
+    println!("{}", s3);  // -> hello world!
+    // - '+' 运算符
+    // 使用了类似 fn add(self, s: &str) -> String {...} 的方法, 第一个字符串失去其所有权
+    let name = String::from(" bye.");
+    let s4 = s3 + &name;  // -> hello world! bye. (s3 发生了移动已失效)
+    // - format! 宏 (类似 js 字符串模板语法)
+    let s5 = format!("{}-{}", s2, s4);
+    println!("{}", s5);  // -> hello-hello world! bye
+
+    // 访问
+    // - 遍历字节 
+    for b in s5.bytes() {}
+    // - 遍历`Unicode`标量值 
+    for c in s5.chars() {}
+    // - 遍历字形簇 无标准库提供
+
+    // 切割
+    // 允许 但不能跨越字符边界, 如果切割了字符边界则会引发 panic
+    // - &string[start..end]
+    let string_part = &s5[0..3];
+}
+```
+
+> `HashMap`
+
+- 类型 `HashMap<K, V>`
+- 键值对的形式存储, 一个键 `K` 对应一个值 `V`
+- 适用场景: 通过 `K` 来寻找数据, 而不是通过索引
+- 所有权
+    - 对实现了 `Copy trait` 的类型(如`i32`), 值会被复制到 `HashMap` 中
+    - 对拥有所有权的值, 其值会被移动, 所有权转移给 `HashMap`
+        - 如果将值的引用插入到 `HashMap` 中, 值本身不会移动
+        - 但在 `HashMap` 有效期间, 被引用的值必须保持有效
+- 默认情况下, `HashMap` 使用加密功能强大的 `Hash` 函数, 可以抵抗 `Dos` 攻击
+    - 不是可用的最快的 `Hash` 算法, 但具有更好的安全性
+    - 可以指定不同的 `hasher` 来切换到另一个函数, `hasher` 是实现 `BuildHasher trait` 的类型
+
+```rust
+use std::collections::HashMap;
+
+fn hashmap_example() {
+    // 创建
+    // - 使用 ::new 方法创建
+    let mut map: HashMap<&String, i32> = HashMap::new();
+    // - 使用 ::collect 方法创建
+    // 在元素类型为 Tuple 的 Vector 上使用 collect 方法, 可以组建一个 HashMap
+    let teams = vec![String::from("red"), String::from("blue")];
+    let scores = vec![10, 50];
+    let team_with_score: HashMap<_, _> = teams.iter()
+        .zip(scores.iter())
+        .collect();
+
+    // 添加数据
+    let red_team = String::from("red");
+    map.insert(&red_team, 10);
+
+    // 访问数据
+    let red_score = match map.get(&red_team) {
+        Some(score) => score,
+        None => None,
+    };
+
+    // 遍历 - for 循环
+    for (k, v) in &map {
+        println!("{}: {}", k, v);
+    }
+
+    // 更新
+    // - K 已经存在, 对应一个 V
+    // - - 替换现有的 V
+    map.insert(&red_team, 20);
+    // - - 保留现有的 V, 忽略新的 V
+    map.entry(&red_team).or_insert(30);  // 已存在, 忽略
+    let blue_team = String::from("blue");
+    map.entry(&blue_team).or_insert(40);  // 不存在, 插入
+    // - - 合并现有的 V 和新的 V
+    let text = "a b c a c";
+    let mut char_map = HashMap::new();
+    for char in text.split_whitespace() {
+        let count = char_map.entry(char).or_insert(0);
+        *count += 1;
+    }
+    println!("{:#?}", char_map);  // {"a": 2, "b": 1, "c": 2}
+    // - K 不存在: 增加一个 K-V 对
+    let new_team = String::from("new");
+    map.insert(&new_team, 100);
 }
 ```
 
