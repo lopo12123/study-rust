@@ -1,6 +1,6 @@
 ## Links
 
-- [Rust 程序设计语言 简体中文版](https://rust.bootcss.com/title-page.html)  
+- [Rust 程序设计语言 简体中文版](https://rust.bootcss.com/title-page.html)
 - [crates.io](https://crates.io/)
 
 ## Cargo
@@ -877,7 +877,53 @@ fn hashmap_example() {
 
 ### 错误处理
 
-`unwrap` 和 `expect`
+> **可恢复错误** 和 **不可恢复错误**
+
+- 可恢复错误 `Result<T, E>`
+    - 例: 文件未找到, 可再次尝试
+    - `Result` 枚举
+- 不可恢复错误 `panic!`
+    - 例: 访问的索引越界
+    - 执行 `panic!` 宏
+        - 打印一个错误信息
+        - 展开 `unwind`, 清理调用栈 `stack`
+        - 退出程序
+
+```rust
+// Result 结构如下
+// enum Result<T, E> {
+//     // 成功返回值
+//     Ok(T),
+//     // 失败返回值
+//     Err(E),
+// }
+fn result_example() {
+    let f = File::open("hello.txt");
+
+    // 匹配文件打开结果
+    let f = match f {
+        Ok(file) => file,
+        // 匹配错误类型
+        Err(err) => match err.kind() {
+            ErrorKind::NotFound => println!("file not found!"),
+            other_error => panic!("other error!"),
+        }
+    };
+
+    // 使用闭包重写上述代码
+    let f = File::open("hello.txt").unwrap_or_else(|error| {
+        if error.kind() - ErrorKind::NotFound {
+            File::create("hello.txt").unwrap_or_else(|error| {
+                panic!( "Error creating file: {:?}"， error);
+            })
+        } else {
+            panic!("Error opening file: {:?}", error);
+        }
+    });
+}
+```
+
+> `unwrap` 和 `expect` 和 `?`运算符
 
 - `unwrap(self)`:
     - 如果成功, 则直接返回 `Result::Ok` 里的值,
@@ -886,11 +932,9 @@ fn hashmap_example() {
     - 接受一个字符串参数(切片类型), 当结果为`Result::Error`的时候输出.
     - 如果成功, 则直接返回 `result` 里的值,
     - 如果失败, 则输出`expect`的入参并调用 `panic!` 宏中止程序.
-- `result` 的结构如下:
-
-```rust
-enum Result<T, E> {
-    Ok(T),
-    Error(E),
-}
-```
+- `?`运算符
+    - 在返回类型为 `Result` 的函数中使用
+    - 在 `Result` 类型的值后面使用
+    - 可链式调用, 类似于 `typescript` 中的 `?.` 操作
+    - 如果成功, `Ok(res)` 中的 `res`作为表达式的结果, 函数继续执行
+    - 如果失败, 整个函数返回 `Err(err)`, 相当于执行了 `return Err(err)`
