@@ -1,3 +1,8 @@
+## Links
+
+- [Rust 程序设计语言 简体中文版](https://rust.bootcss.com/title-page.html)  
+- [crates.io](https://crates.io/)
+
 ## Cargo
 
 > **新建项目** `cargo new project_name`
