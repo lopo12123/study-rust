@@ -938,3 +938,71 @@ fn result_example() {
     - 可链式调用, 类似于 `typescript` 中的 `?.` 操作
     - 如果成功, `Ok(res)` 中的 `res`作为表达式的结果, 函数继续执行
     - 如果失败, 整个函数返回 `Err(err)`, 相当于执行了 `return Err(err)`
+
+### 泛型、`Trait`、生命周期
+
+> 泛型
+
+- 提高代码复用能力
+- 是具体类型或其他属性的抽象代替
+- 与 `typescript` 类似
+    - `fn` -> `function`
+    - `struct` -> `class`
+    - `enum` -> `type` / `interface`
+- `fn largest<T>(list: &[T]) -> T {...}`
+- 性能和普通代码一致, 因为编译器会执行单态化(类似`c++`)
+
+> `Trait`
+
+- 把方法签名放在一起, 定义实现某种目的所必须的一组行为 (类似抽象类)
+    - 关键字 `trait`
+    - 只有方法签名, 没有具体实现
+    - `trait` 可以有多个方法: 每个方法签名占一行, 以 `;` 结尾
+    - 实现该 `trait` 的类型必须提供具体的方法实现
+- 实现 `trait` 的约束
+    - 这个类型或这个 `trait` 是在本地 `crate` 里定义的
+    - 无法为外部类型实现外部的 `trait` (孤儿规则)
+- 默认实现
+    - 在 `trait` 中直接实现方法, 作为默认实现
+    - 默认实现中的方法可以调用 `trait` 中其他的方法, 即使这些方法没用默认实现
+- `trait` 作为参数
+    - `impl trait` 语法, 适用于简单情况 (`trait bound` 的一种语法糖)
+    - `trait bound` 语法, 适用于复杂情况
+    - 使用 `+` 指定多个 `trait bound`
+    - `trait bound` 可使用 `where` 子句
+- `trait` 作为返回类型
+    - `impl trait` 语法: 只能返回确定的同一种类型, 返回可能不同类型的代码会报错
+
+```rust
+pub trait Summary {
+    fn summarize1(&self) -> String;
+    fn summarize2(&self) -> String;
+}
+
+pub trait Display {
+    fn display1(&self) -> String;
+    fn display2(&self) -> String;
+}
+
+// trait 作为参数
+fn impl_trait_example(item: impl Summary + Display) {
+    println!("{}", item.summarize1());
+}
+
+fn trait_bound_example<T: Summary + Display>(item: T) {
+    println!("{}", item.summarize1());
+}
+
+fn where_example<T, K>(item1: T, item2: K)
+    where
+        T: Summary,
+        K: Summary + Display,
+{
+    println!("{}, {}", item1.summarize1(), item2.display1());
+}
+
+// trait 作为返回类型
+fn trait_as_result_example() -> impl Summary {
+    // native code
+}
+```
