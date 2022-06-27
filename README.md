@@ -1006,3 +1006,121 @@ fn trait_as_result_example() -> impl Summary {
     // native code
 }
 ```
+
+> 生命周期
+
+- 引用保持有效的作用域
+    - 避免垂悬引用 (`dangling reference`)
+    - 每个引用都有自己的生命周期
+    - 大多数情况是隐式的、可推断的
+    - 当引用的生命周期可能以不同的方式互相关联时, 可以手动标注生命周期
+- 借用检查器
+    - 比较作用域来判断所有的借用是否合法
+- 生命周期标注
+    - 生命周期的标注不会改变引用的生命周期长度
+    - 当指定了泛型生命周期参数, 函数可以接收带有任何生命周期的引用
+    - 生命周期的标注描述了多个引用的生命周期之间的关系, 但不影响生命周期
+    - 语法
+        - 参数名以 `'` 开头, 通常全小写非常短(`'a`)
+        - `&i32`  // 一个引用
+        - `&'a i32`  // 带有显式生命周期的引用
+        - `&'a mut i32`  // 带有显式生命周期的可变引用
+- 生命周期省略的三个规则 (适用于 `fn` 和 `impl`)
+    - 规则1: 每个引用类型的参数都有自己的生命周期
+    - 规则2: 如果只有一个输入生命周期参数, 那么该生命周期被赋给所有的输出生命周期参数
+    - 规则3: (只适用于方法) 如果有多个输入生命周期参数, 但其中一个是 `&self` 或 `&mut self`, 那么 `self` 的生命周期会被赋给所有的输出生命周期参数
+- 函数定义中的声明周期标注
+    - 泛型生命周期参数声明在在函数名和参数列表之间的 `<>` 里
+    - 指定生命周期参数的方式依赖于函数所做的事
+        - 从函数返回引用时, 返回类型的生命周期参数需要与其中一个参数的生命周期匹配
+        - 如果返回的引用没有指向任何参数, 那么它只能引用函数内创建的值(发生了悬垂引用, 因为该值在函数结束时结束了其生命周期)
+- 结构体定义中的生命周期标注(见下 `code example`)
+- 方法定义中的生命周期标注
+    - 在 `struct` 上使用生命周期实现方法, 语法和泛型参数的语法一致
+    - `struct` 字段的生命周期名
+        - 在 `impl` 后声明
+        - 在 `struct` 后使用
+        - 这些生命周期参数是 `struct` 类型的一部分
+    - `impl` 块内的方法签名中
+        - 引用必须绑定于 `struct` 字段引用的生命周期, 或者引用是独立的也可以
+        - 生命周期省略规则经常使得方法中的生命周期标注不是必须的
+- 静态生命周期
+    - `'static` 是一个特殊的生命周期, 是整个程序的持续时间
+        - 例如: 所有的字符串字面量都拥有 `'static` 的生命周期
+
+```rust
+// 生命周期错误示例
+fn life_circle_error_example() {
+    let r;
+    {
+        let x = 5;
+        r = &x;  // error[E0597]: borrowed value does not live long enough
+    }
+    println!("r: {}", r);
+}
+
+// 生命周期标注实例
+fn life_circle_mark_example() {
+    let s1 = String::from("abcd");
+    let s2 = "xyz";
+
+    let result = longest(s1.as_str(), s2);
+
+    println!("longest string is: {}", result);
+}
+
+// 此处的生命周期 'a 的实际生命周期是: x 和 y 两个生命周期中较小的那个
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() { x } else { y }
+}
+
+// 生命周期参数省略规则
+
+// 例1
+// 原始
+fn ex1(s: &str) -> &str { "native code" }
+
+// 规则1
+fn ex1_mid<'a>(s: &'a str) -> &str { "native code" }
+
+// 规则2
+fn ex1_auto<'a>(s: &'a str) -> &'a str { "native code" }
+// 此时符合 [所有引用都有其生命周期] -> 即可以省略
+
+// 例2
+// 原始
+fn ex2(x: &str, y: &str) -> &str { "native code" }
+
+// 规则1, 规则23不适用
+fn ex2_auto<'a, 'b>(x: &'a str, y: &'b str) -> &str { "native code" }
+// 此时不符合 [所有引用都有其生命周期] -> 即不可以省略
+
+// 例3
+struct LifeCircleMark<'a> {
+    part: &'a str
+}
+
+impl<'a> LifeCircleMark<'a> {
+    // 无引用返回, 则无需生命周期标注
+    fn no_ref_return(&self) -> i32 { 1 }
+
+    // 根据规则3, 自动为返回类型标注为 self 的生命周期
+    fn with_ref_return(&self, arg1: &str) -> &str {
+        "native code"
+    }
+}
+```
+
+```rust
+// 综合使用
+use std::fmt::Display;
+
+fn longest_with_an_announcement<'a, T>
+(x: &'a str, y: &'a str, ann: T) -> &'a str
+    where T: Display
+{
+    println!("Announcement! {}", ann);
+
+    if x.len() > y.len() { x } else { y }
+}
+```
