@@ -1124,3 +1124,86 @@ fn longest_with_an_announcement<'a, T>
     if x.len() > y.len() { x } else { y }
 }
 ```
+
+### 测试
+
+- 使用 `#[test]` 标注所有的测试函数
+- 使用 `cargo test` 命令运行所有的测试函数
+    - 构建一个 `Test Runner` 可执行文件
+    - 运行标注了 `test` 的函数并报告其是否成功
+- 当使用 `cargo` 创建 `library` 项目时, 会生成一个 `test module`, 里面有一个 `test` 函数
+    - 可以有任意数量的 `test module` 和 `test` 函数
+
+> 断言
+
+- `assert!` 测试 `bool`
+    - 断言失败: 输出 `FAILED`
+- `assert_eq!` 和 `assert_ne!` 测试相等性
+    - 两个参数
+    - 要求参数实现了 `PartialEq` 和 `Debug` 这两个 `trait` (所有的基本类型和标准库的大部分类型都已实现)
+    - 断言失败: 输出 两个参数的值
+- 添加自定义错误信息
+    - 在 `assert!` 的第二个参数和 `assert_eq!`/`assert_ne!` 的第三个参数添加自定义信息 (可以使用占位符添加更多信息)
+- 使用 `#[should_panic]` 标注应该发生 `panic`
+    - `#[should_panic(expected = "expected error msg")]` 标注发生 `panic` 的错误信息应该包含某些内容文本
+- 使用 `Result<T, E>` (无需 `panic`)
+    - 返回 `Ok`: 测试通过
+    - 返回 `Err`: 测试失败
+
+> `cargo test`
+
+- 默认行为
+    - 并行运行
+    - 执行所有测试
+    - 捕获(不显示)所有输出, 使读取与测试结果相关的输出更容易
+- 命令行参数
+    - 针对 `cargo`: 放在 `cargo test` 之后
+        - 使用 `cargo test --help` 查看可用信息
+    - 针对测试可执行程序: 放在 `--` 之后
+        - 使用 `cargo test -- --help` 查看可用信息
+- 并行/串行 运行测试
+    - 并行(默认)
+        - 运行更快
+        - 需要确保测试之间不互相依赖且不依赖于某一共享状态
+    - 串行(控制线程数量)
+        - `cargo test -- --test-threads=1`
+- 显式函数输出
+    - 如果测试通过, 默认会捕获所有标准输出内容(不显示)
+    - 使用 `cargo test -- --show-output` 在成功的测试中显示输出
+- 按名称运行测试
+    - 将测试的名称(一个或多个)作为 `cargo test` 的参数
+    - `cargo test name_of_test_fn`
+    - 用测试名的一部分匹配多个测试
+        - 如: 使用 `cargo test my_test` 匹配 `my_test_1`、`my_test_2` 等多个测试函数
+    - 忽略某些测试, 运行剩余测试
+        - 使用 `#[ignore]` 标记忽略测试函数
+        - 使用 `cargo test -- --ignored` 只运行被标记为忽略的测试函数
+
+> 单元测试 / 集成测试
+
+- 单元测试
+    - 一次对一个模块进行隔离的测试
+    - 可测试 `private` 接口
+    - 一般与模块同文件下, 使用 `#[cfg(test)]` 进行标注
+        - 只有运行 `cargo test` 才会编译运行代码
+        - 运行 `cargo build` 不会编译/运行 代码
+    - 测试私有函数
+        - 允许直接调用私有函数
+- 集成测试
+    - 和外部代码一样调用模块(可能使用到多个模块)
+    - 只能测试 `public` 接口
+    - `tests` 目录(与 `src` 并列)
+        - 不需要 `#[cfg(test)]` 标注
+        - 只会在使用 `cargo test` 时编译
+        - 每一个文件都是一个单独的 `crate`
+    - 运行指定的集成测试
+        - 运行特定的集成测试: `cargo test name_of_test_fn`
+        - 运行某个测试文件内的所有测试: `cargo test --test filename`
+- 针对 `binary crate` 的集成测试
+    - 如果项目是 `binary crate`, 只含有 `src/main.rs` 而没有 `src/lib.rs`
+        - 不能在 `tests` 目录下创建集成测试
+        - 无法把 `main.rs` 的函数导入到作用域
+            - 只有 `library crate` 才能暴露函数给其他 `crate` 使用
+            - `binary crate` 意味着独立运行
+- `#[cfg(condition)]`: `configuration`(配置)
+    - 只有在指定的配置条件下才被包含
