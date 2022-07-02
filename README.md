@@ -1273,3 +1273,64 @@ fn closure_in_struct_example() {}
     - 可变借用: `FnMut`, 没有移动捕获变量的实现了 `FnMut`
     - 不可变借用: `Fn`, 无需可变访问捕获变量的闭包实现了 `Fn`
     - `move` 关键字: 在参数列表前使用 `move` 关键字, 可以强制闭包取得它所使用的环境值的所有权
+
+> 迭代器 `iterator`
+
+- **Rust** 的迭代器: 除非调用消费迭代器的方法, 否则迭代器本身没有任何效果
+- `Iterator trait`
+    - 所有的迭代器都实现了 `Iterator trait`
+    - `type Item` 和 `Self::Item` 定义了与此 `trait` 关联的类型
+    - `Iterator trait` 仅要求实现一个方法 `next`
+        - 每次返回迭代器中的一项
+        - 返回结果包裹在 `Some` 里
+        - 迭代结束返回 `None`
+        - 可以直接在迭代器上调用 `next` 方法
+- 迭代方法
+    - `iter`: 在不可变引用上创建迭代器
+    - `into_iter`: 创建的迭代器会获得所有权
+    - `iter_mut`: 迭代可变的引用
+- 消耗迭代器的方法 (消耗型适配器)
+    - 例: `sum` 方法, 会将结果收录为一个总和
+    - 例: `collect` 方法, 会将结果收集到一个集合类型中
+- 产生其他迭代器的方法 (迭代器适配器)
+    - 例: `map` 方法, 会产生一个新的迭代器
+- 使用闭包捕获环境
+    - `filter` 方法 (用法同`js` 的 `filter`)
+- 自定义迭代器 (见 `code example`)
+- 循环 vs 迭代器
+  - 迭代器: 零成本抽象
+
+```rust
+// Iterator trait
+pub trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+
+// 自定义迭代器
+struct Counter {
+    count: u32,
+    max: u32,
+}
+
+impl Counter {
+    fn new(max: u32) -> Self {
+        Self {
+            count: 0,
+            max
+        }
+    }
+}
+
+impl Iterator for Counter {
+    type Item = u32;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count <= self.max {
+            self.count += 1;
+            Some(self.count - 1)
+        } else {
+            None
+        }
+    }
+}
+```
