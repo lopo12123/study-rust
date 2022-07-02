@@ -1207,3 +1207,69 @@ fn longest_with_an_announcement<'a, T>
             - `binary crate` 意味着独立运行
 - `#[cfg(condition)]`: `configuration`(配置)
     - 只有在指定的配置条件下才被包含
+
+### 闭包、迭代器
+
+> 闭包 `closure`
+
+- 基本
+    - 闭包是可以捕获其所在环境的匿名函数
+        - 是匿名函数
+        - 保存为变量, 作为参数使用
+        - 可以在一个地方创建闭包, 在另一个上下文中调用闭包来完成运算
+        - 可以从其定义的作用域捕获值
+    - 不要求标注参数和返回值的类型(也可以手动标注)
+    - 通常很短小, 只在狭小的上下文中工作, 编译器一般能够推断其参数和返回类型
+
+```rust
+fn closure_example() {
+    let closure1 = |x1| x1 + 1;
+    let closure2 = |x2| {
+        println!("x2: {}", x2);
+        x2 + 1
+    };
+    let closure3 = |x3: u32| -> u32 {
+        println!("x3: {}", x3);
+        x3 + 1
+    };
+}
+```
+
+- 让 `struct` 持有闭包
+    - `Fn trait`: `Fn`, `FnMut`, `FnOnce`
+
+```rust
+struct Cacher<F>
+    where F: Fn(u32) -> u32 {
+    closure: F,
+    value: Option<u32>
+}
+
+impl<T> Cacher<T>
+    where T: Fn(u32) -> u32 {
+    fn new() -> Self <T> {
+        Self {
+            closure: |x| x + 1,
+            value: None,
+        }
+    }
+    fn calculate(&mut self, arg: u32) {
+        match self.value {
+            Some(v) => v,
+            None => {
+                let v = self.closure(arg);
+                self.value = Some(v);
+                v
+            }
+        }
+    }
+}
+
+fn closure_in_struct_example() {}
+```
+
+- 闭包从所在环境捕获值的方式
+    - 取得所有权: `FnOnce`, 所有闭包都实现了 `FnOnce`
+    - 可变借用: `FnMut`, 没有移动捕获变量的实现了 `FnMut`
+    - 不可变借用: `Fn`, 无需可变访问捕获变量的闭包实现了 `Fn`
+    - `move` 关键字: 在参数列表前使用 `move` 关键字, 可以强制闭包取得它所使用的环境值的所有权
