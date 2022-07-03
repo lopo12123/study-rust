@@ -5,7 +5,7 @@ enum List {
     End,
 }
 
-fn demo() {
+#[cfg(test)]
+fn test() {
     let demo_list = Node(1, Box::new(Node(2, Box::new(End))));
-
 }
