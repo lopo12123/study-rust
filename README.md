@@ -1298,7 +1298,7 @@ fn closure_in_struct_example() {}
     - `filter` 方法 (用法同`js` 的 `filter`)
 - 自定义迭代器 (见 `code example`)
 - 循环 vs 迭代器
-  - 迭代器: 零成本抽象
+    - 迭代器: 零成本抽象
 
 ```rust
 // Iterator trait
@@ -1334,3 +1334,94 @@ impl Iterator for Counter {
     }
 }
 ```
+
+### 智能指针
+
+- 智能指针通常使用 `struct` 实现, 并且实现了 `Deref` 和 `Drop` 这两个 `trait`
+    - `Deref`: 允许智能指针 `struct` 实例像引用一样使用
+    - `Drop`: 允许自定义智能指针实例走出作用域时的代码
+- 借用
+    - 使用 `&`
+    - 指向它借用的值
+    - 没有额外开销
+    - 最常见的指针类型
+- 智能指针
+    - 行为和指针类似
+    - 有额外的元数据和功能
+
+|   | `Box<T>` | `Rc<T>` | `RefCell<T>` |  
+| --- | --- | --- | --- |
+| 同一数据的所有者 | 一个 | 多个 | 一个 |
+| 可变性 | 可变/不可变 | 不可变 | 可变/不可变 |
+| 借用检查 | 编译时检查 | 编译时检查 | 运行时检查 |
+
+其中: 即使 `RefCell<T>` 本身不可变, 但仍能修改其中存储的值
+
+> `Deref` & `Drop`
+
+- [code example](./src/example_deref_drop.rs)
+- `Deref`: `dereference`
+    - 函数和方法的隐式解引用转化 `Deref Coercion`
+    - 假设 `T` 实现了 `Deref trait`
+        - `Deref Coercion` 可以把 `T` 的引用转化为 `T` 经过 `Deref` 操作后生成的引用
+    - 当把某类型的引用传递给函数或方法时, 但它的类型与定义的参数类型不匹配
+        - `Deref Coercion` 会自动发生. 编译器会对 `deref` 进行一系列调用, 转换为所需的参数类型. (编译时完成, 无额外开销)
+    - 解引用与可变性
+        - 可以使用 `DerefMut trait` 重载可变引用的 `*` 运算符
+        - 在类型和 `trait` 在以下三种情况发生时, **Rust** 会执行 `deref coercion`
+            - 当 `T: Deref<Target = U>`, 允许 `&T` 转换为 `&U`
+            - 当 `T: DerefMut<Target = U>`, 允许 `&mut T` 转换为 `&mut U`
+            - 当 `T: Deref<Target = U>`, 允许 `&mut T` 转换为 `&U`
+- `Drop`: `destructor`
+    - 实现 `Drop trait`, 可以自定义当值将要离开作用域时发生的动作
+    - `Drop trait` 只要求实现 `drop` 方法
+        - 参数: 对 `self` 的可变引用
+    - **Rust** 不允许手动调用 `Drop trait` 的 `drop` 方法
+    - 可以通过调用标准库的 `std::mem::drop` 函数, 提前 `drop` 某个变量
+
+> `Box<T>`
+
+- [code example](./src/example_box.rs)
+- `Box<T>` 是最简单的智能指针(类似链表)
+- 允许在 `heap` 上存储数据
+- `stack` 上只存储了指向 `heap` 数据的指针
+- 没有性能开销, 但也没有其他额外功能
+- 实现了 `Deref trait` 和 `Drop trait`
+- 使用场景
+    - 编译时某类型的大小无法确定, 但使用该类型的时候上下文却需要知道它的确切大小
+    - 有大量数据想移交所有权但需要确保在操作时数据不会被复制
+    - 使用某个值的时候只关心其是否实现了特定的 `trait`, 而不关心其具体类型
+
+> `Rc<T>`
+
+- 通过不可变引用, 在程序不同部分之间共享只读数据
+- 在没有任何所有者时自动清理数据
+- 使用场景
+    - 需要在 `heap` 上分配数据, 这些数据被程序的多个部分读取(只读), 但在编译阶段无法确定哪个部分最后使用完这些数据
+    - `Rc<T>` 只能用于单线程场景
+- `Rc::clone(&xx)` vs `xx.clone()`
+    - `Rc::clone(&xx)`: 增加引用计数, 不会执行数据深拷贝
+    - `xx.clone()`: 很多会执行数据的深拷贝
+
+> `RefCell`
+
+- [code example](./src/example_refcell.rs)
+- 与 `Rc<T>` 一样, 只适用于单线程场景
+- 与 `Rc<T>` 不同, `RefCell<T>` 类型代表了其持有数据的唯一所有权
+- 内部可变性 `interior mutability`
+    - 内部可变性是 **Rust** 的设计模式之一
+    - 允许在只持有不可变引用的前提下对数据进行修改(数据结构中使用了 `unsafe` 代码来绕过 **Rust** 正常的可变性和借用规则)
+- 使用 `RefCell<T>` 在运行时记录借用信息
+    - 两个方法(安全接口)
+        - `borrow`: 返回智能指针 `Ref<T>`, 它实现了 `Deref`
+        - `borrow_mut`: 返回智能指针 `RefMut<T>`, 它实现了 `Deref`
+    - `RefCell<T>` 会记录当前存在多少活跃的 `Ref<T>` 和 `RefMut<T>` 智能指针. 以此技术来维护借用检查规则
+        - 每次调用 `borrow`, 不可变借用计数 `+1`
+        - 任何一个 `Ref<T>` 的值离开作用域被释放时, 不可变借用计数 `-1`
+        - 每次调用 `borrow_mut`, 可变借用计数 `+1`
+        - 任何一个 `RefMut<T>` 的值离开作用域被释放时, 可变借用计数 `-1`
+- 可以使用 `Rc<T>` 和 `RefCell<T>` 创建拥有多个可变引用的数据结构(例: `Rc<RefCell<T>>`)
+- 其他实现内部可变性的类型
+    - `Cell<T>` 通过复制来访问数据
+    - `Mutex<T>` 用于实现跨线程情况下的内部可变性模式
+

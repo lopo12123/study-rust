@@ -1,10 +1,9 @@
-mod guess_number;
-
-use guess_number::GuessNumber;
+mod example_box;
+mod example_deref_drop;
+mod example_rc;
+mod example_refcell;
 
 #[allow(unused_variables)]
 fn main() {
     println!("start!");
-
-    GuessNumber::guess();
 }
