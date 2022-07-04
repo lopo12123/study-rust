@@ -1208,6 +1208,15 @@ fn longest_with_an_announcement<'a, T>
 - `#[cfg(condition)]`: `configuration`(配置)
     - 只有在指定的配置条件下才被包含
 
+### 实例
+
+- `code example`: `git clone` -> `cargo run`
+- 测试驱动开发 `TDD, test-driven development`
+    - 编写一个会失败的测试, 运行该测试, 确保其按照预期的原因失败
+    - 编写或修改刚好足够的代码让新测试通过
+    - 重构刚刚添加或修改的代码, 确保测试会始终通过
+    - 返回步骤1, 继续
+
 ### 闭包、迭代器
 
 > 闭包 `closure`

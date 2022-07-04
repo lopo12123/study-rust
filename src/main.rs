@@ -1,9 +1,15 @@
-mod example_box;
-mod example_deref_drop;
-mod example_rc;
-mod example_refcell;
+use std::{env, process};
+use study_rust::{QueryConfig, run};
 
-#[allow(unused_variables)]
 fn main() {
-    println!("start!");
+    let args = env::args().collect();
+    let config = QueryConfig::new(args).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        process::exit(1);
+    });
+
+    if let Err(err) = run(config) {
+        eprintln!("error when reading file: {:?}", err);
+        process::exit(1);
+    }
 }
