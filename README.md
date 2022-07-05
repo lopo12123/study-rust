@@ -1434,3 +1434,139 @@ impl Iterator for Counter {
     - `Cell<T>` 通过复制来访问数据
     - `Mutex<T>` 用于实现跨线程情况下的内部可变性模式
 
+### 面向对象
+
+- 封装
+    - **Rust** 使用 `struct` 封装属性, `impl` 封装方法
+- 继承
+    - **Rust** 没有继承, 但使用 `trait` 实现代码共享
+- 多态
+    - **Rust** 使用泛型和 `trait` 约束
+- `trait` 对象必须满足对象安全(`object-safe`)
+    - 方法返回的类型不是 `Self`
+    - 方法中不包含任何泛型类型参数
+- 状态模式(`state pattern`)
+    - 是一种面向对象设计模式
+    - 一个值拥有的内部状态由数个状态对象(`state object`)表达而成, 而值的行为则随着内部状态的改变而改变
+    - 业务需求变化时, 不需要修改持有状态的值的代码或者使用这个值的代码
+    - 只需要更新状态对象内部的代码, 以便改变其规则; 或者增加一些新的状态对象
+
+### 模式匹配
+
+- 模式是 **Rust** 中的一种特殊语法, 用于匹配复杂和简单类型的结构
+- 将模式与匹配表达式和其他构造结合使用能更好地控制程序的控制流
+- 模式由以下元素(的一些组合)组成
+    - 字面量
+    - 解构的数组、`enum`、`struct`、`tuple`
+    - 变量
+    - 通配符
+    - 占位符
+- 如果要使用模式, 就要将其与某个值进行比较
+    - 如果模式匹配, 就能使用这个值的相应部分
+
+> 模式
+
+- `match`
+    - 要求: 穷尽(分支必须包含所有的可能性)
+    - 一个特殊的模式: `_`
+        - 它会匹配任意内容
+        - 不会绑定到变量
+        - 通常用于 `match` 的最后一个分支, 或用于忽略某些值
+- `if let`
+    - 主要作为简短的方式来等价的替代只有一个匹配项的 `match`
+    - 可选地可以拥有 `else`, `else if`, `else if let`
+    - 不会检查穷尽性
+- `while let`
+    - 只要模式满足匹配的条件, 循环就会一直运行
+- `for`
+    - `for` 循环中, 模式就是紧随 `for` 关键字后的值
+- `let`
+    - `let` 也是模式, `let PATTERN = EXPRESSION;`
+- 函数参数
+    - 参数也可以是模式(类似 `javascript` 直接形参解构写法)
+
+> 可辩驳性
+
+- 无可辩驳的: 能匹配任何可能传递的值 (例: `let x = 5;`)
+- 可辨驳的: 对某些可能的值, 无法进行匹配 (例: `if let Some(x) = 5`)
+- 函数参数、`let` 语句、`for` 循环只接受无可辩驳的模式
+- `if let`、`while let` 接受可辨驳和无可辩驳(会`warning`)的模式
+
+> 模式(匹配)语法
+
+- 字面量: 可以直接匹配
+- 命名变量: 是可匹配任何值的无可辩驳模式
+- 多重模式: 在 `match` 表达式中, 使用 `|` 语法表示或, 用于匹配多种模式
+- 范围匹配: 使用 `..=` 匹配范围值
+- 解构以分解值(同 `javascript`, `ES6` 解构语法): 可以使用模式来解构 `struct`, `enum`, `tuple` 从而引用这些值的不同部分
+- 在模式中忽略值
+    - `_` 忽略整个值
+    - 以 `_` 开头的名称忽略未使用的变量
+    - 以 `..` 结尾忽略剩余部分 (类似 `javascript` 的 `...` 剩余运算符)
+- 使用 `match` 守卫提供额外条件
+    - 在 `match` 分支的模式后添加额外的 `if` 条件
+- `@` 绑定
+    - `@` 符号可以创建一个变量, 该变量可以在测试某个值是否与模式匹配的同时保存该值
+
+```rust
+fn pattern_example() {
+    // 字面量
+    let a = 3;
+    match a {
+        1 => println!("1"),
+        2 => println!("2"),
+        3 => println!("3"),  // √
+        _ => println!("other")
+    }
+
+    // 命名变量
+    let b = Some(1);
+    if let Some(c) = b {
+        println!("c is {}", c);  // c is 1
+    }
+
+    // 多重模式
+    let d = 1;
+    match d {
+        1 | 2 => println!("1 or 2"),
+        _ => println!("< 1 or > 2"),
+    }
+
+    // 范围匹配
+    let e = 3;
+    match e {
+        1..=5 => println!("in [1, 5]"),
+        _ => println!("in (-∞, 1) or (5, +∞)"),
+    }
+    let f = 'w';
+    match f {
+        'a'..='k' => println!("in [a, k]"),
+        _ => println!("other"),
+    }
+
+    // 解构以分解值
+    let g = (0, '1', "two");
+    let (g1, g2, g3) = g;
+    assert_eq!(0, g1);
+    assert_eq!('1', g2);
+    assert_eq!("two", g3);
+
+    // match 守卫
+    let h = Some(3);
+    match h {
+        Some(x) if x > 0 => println!("x is greater then 0"),
+        _ => println!("other"),
+    }
+
+    // @ 绑定
+    struct Bind {
+        val: i32
+    }
+    let i = Bind { val: 3 };
+    match i {
+        Bind { val: real_val @ 0..=10 } => println!("i is {}", real_val),
+        Bind { val: 11..=20 } => println!("val in [11, 20]"),
+        _ => println!("other"),
+    }
+}
+```
