@@ -1434,6 +1434,201 @@ impl Iterator for Counter {
     - `Cell<T>` 通过复制来访问数据
     - `Mutex<T>` 用于实现跨线程情况下的内部可变性模式
 
+### 多线程
+
+- `concurrent`: 程序不同部分之间独立的执行(并发)
+- `parallel`: 程序不同部分之间同时运行(并行)
+
+> 进程和线程
+
+- 大部分OS中, 代码运行在进程(`process`)中, OS同时管理多个进程
+- 程序中各个独立的部分可以同时运行, 这些独立部分就是线程(`thread`)
+- 多线程运行
+    - 提升性能表现
+    - 增加复杂性: 无法保障各线程的执行顺序
+    - 导致的问题
+        - 竞争状态
+        - 死锁
+- 实现线程的方式
+    - 调用OS的API创建线程: `1:1` 模型 (需要较小的运行时)
+    - 语言自己实现的线程(绿色线程): `M:N` 模型 (需要更大的运行时)
+    - **Rust** 标准库仅提供 `1:1` 模型的线程
+
+> 多线程执行
+
+- 使用 `thread::spawn` 创建新线程, 其返回值类型为 `JoinHandle`
+- `JoinHandle` 持有值的所有权, 调用其 `join` 方法可以等待对应线程完成
+- `join` 方法: 调用 `handle` 的 `join` 方法会阻止当前线程的运行, 直到 `handle` 所表示的线程运行结束
+- 使用 `move` 闭包
+    - `move` 闭包通常和 `thread::spawn` 一起使用, 允许使用其他线程的值
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let handle = thread::spawn(|| {
+        for i in 1..10 {
+            println!("from spawned thread: {}", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("from main thread: {}", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+
+    handle.join().unwrap();
+}
+
+fn move_example() {
+    let v = vec![1, 2, 3];
+
+    // 使用 move 将 v 的所有权移动到闭包中
+    let handle = thread::spawn(move || {
+        println("vector from main thread: {}", v);
+    });
+
+    handle.join().unwrap();
+}
+```
+
+> 消息传递
+
+- 一种很流行且能保证安全并发的技术: 消息传递, 线程(或 `actor`)通过彼此发送消息来进行通信
+- `Channel`
+    - 包含: 发送端、接收端
+    - 调用发送端接收数据, 接收端检查和接受到达的数据
+    - 如果任意一端被丢弃, 则该 `Channel` 就被 '关闭' 了
+- 创建 `Channel`
+    - 使用 `mpsc::channel` 函数创建 `Channel`
+        - `mpsc` 表示 `multiple producer, single consumer`
+        - 返回一个 `tuple`, 里面的元素为 `(sender, receiver)`
+    - 发送端方法
+        - 参数: 要发送的数据
+        - 返回: `Result<T, E>`
+            - 如果有问题(如接收端已被丢弃), 就返回一个错误
+        - 可以通过克隆创建多个发送者 `mpsc::Sender::clone(&sender);`
+    - 接收端方法
+        - `recv` 方法: 阻止当前线程执行, 直到 `Channel` 中有值被发送过来
+            - 一旦有值收到, 就返回 `Result<T, E>`
+            - 当发送端关闭, 就会收到一个错误
+        - `try_recv` 方法: 不会阻塞
+            - 立即返回 `Result<T, E>`
+                - 有数据到达, 返回 `Ok`, 里面包含数据
+                - 否则返回错误
+            - 通常使用循环调用来检查 `try_recv` 的结果
+
+```rust
+use std::sync::mpsc;
+use std::thread;
+
+fn main() {
+    let (sender, receiver) = mpsc::channel();
+
+    thread::spawn(move || {
+        let val = String::from("hi");
+
+        // val 的所有权被发送, 之后无法再使用 val
+        sender.send(val).unwrap();
+    });
+
+    let received = rx.recv().unwrap();
+    println!("got: {}", received);
+    // got: hi
+}
+
+fn recv_example() {
+    let (sender, receiver) = mpsc::channel();
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("one"),
+            String::from("two"),
+            String::from("three"),
+            String::from("four"),
+        ];
+
+        for val in vals {
+            sender.send(val).unwrap();
+            thread::sleep(Duration::from_millis(200));
+        }
+    });
+
+    // 使用循环调用
+    // receiver 会依次等待信息, 当 sender 被丢弃就会退出循环
+    for received in receiver {
+        println!("got: {}", received);
+    }
+
+    // 间隔 200ms 打印一条
+    // got: one
+    // got: two
+    // got: three
+    // got: four
+}
+```
+
+> 共享实现并发
+
+- `channel` 类似单所有权: 一旦将值的所有权转移到 `channel`, 就无法再使用它
+- **Rust** 支持通过共享状态来实现并发. 共享内存并发类似多所有权: 多个线程可以同时访问一块内存
+- 使用 `Mutex`(互斥锁, `mutual exclusion`) 使每次只允许一个线程访问数据
+    - 在使用数据前必须先获取互斥锁
+    - 使用完后必须解锁以便其他线程获取数据
+    - 通过 `Mutex::new(data)` 来创建 `Mutex<T>`(是一个智能指针)
+    - 访问数据前通过 `lock` 方法获取锁
+        - 会阻塞当前线程
+        - `lock` 可能会失败
+        - 返回的是 `MutexGuard` (智能指针, 实现了 `Deref` 和 `Drop`)
+- 使用 `Arc<T>` (`atomic reference count`) 进行原子引用计数
+    - `Arc<T>` 和 `Rc<T>` 类似, 可以用于并发场景
+- `RefCell<T>/Rc<T>` vs `Mutex<T>/Arc<T>`
+    - `Mutex<T>` 提供了内部可变性, 和 `Cell` 家族一样
+    - 可以使用 `RefCell<T>` 来改变 `Rc<T>` 里的内容
+    - 可以使用 `Mutex<T>` 来改变 `Arc<T> 里的内容
+    - 注意: `Mutex<T>` 有死锁风险
+
+```rust
+use std::sync::Mutex;
+
+fn main() {
+    let m = Mutex::new(5);
+
+    {
+        // 使用 lock 获取锁
+        let mut num = m.lock().unwrap();
+        // 可修改
+        *num = 6;
+
+        // 离开作用域时自动解锁
+    }
+
+    println!("m = {:?}", m);
+    // m = Mutex { data: 6 }
+}
+```
+
+> `Send` 和 `Sync`
+
+- **Rust** 中有两个并发概念: `std::marker::Sync` 和 `std::marker::Send`
+- `Send`: 允许线程间转移所有权
+    - 实现了 `Send trait` 的类型可以在线程间转移所有权
+    - **Rust** 中几乎所有类型都实现了 `Send`
+        - 但 `Rc<T>` 没有实现 `Send`, 它只用于单线程场景
+    - 完全由 `Send` 类型标记的类型也被标记为 `Send`
+    - 除了原始指针外, 几乎所有基础类型都是 `Send`
+- `Sync`: 允许从多线程访问
+    - 实现了 `Sync trait` 的类型可以安全地被多个线程引用
+    - 如果 `T` 是 `Sync`, 那么 `&T` 就是 `Send` (引用可以被安全地送往另一个线程)
+    - 基础类型都是 `Sync`
+    - 完全由 `Sync` 类型标记的类型也被标记为 `Sync`
+        - 但 `Rc<T>` 不是 `Sync` 的, 它只用于单线程场景
+        - `RefCell<T>` 和 `Cell<T>` 家族也不是 `Sync` 的
+        - `Mutex<T>` 是 `Sync` 的
+- 手动实现 `Send` 和 `Sync` 很难保证安全
+
 ### 面向对象
 
 - 封装
