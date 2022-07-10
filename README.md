@@ -1344,6 +1344,110 @@ impl Iterator for Counter {
 }
 ```
 
+### 构建、发布
+
+> release profile
+
+- 是预定义的(可自定义: 可使用不同的配置, 对代码编译有更多的配置)
+- 每个 `profile` 的配置都独立于其他的 `profile`
+- 主要有两个
+    - `dev profile`: 适用于开发, `cargo build`
+    - `release profile`: 适用于发布, `cargo build --release`
+- 自定义 `profile`
+    - 在 `cargo.toml` 里添加 `[profile.xxx]` 区域, 在里面覆盖默认配置的子集
+
+```toml
+# Cargo.toml
+
+[package]
+name = "demo"
+version = "0.1.0"
+authors = ["lopo <lopo@zju.edu.cn>"]
+edition = "2021"
+
+[profile.dev]
+opt-level = 0  # opt-level 是代码的优化程度 (越大优化越高, 所需编译时间越长)
+
+[profile.release]
+opt-level = 3
+```
+
+> 发布包到 `crates.io`
+
+- 文档注释: 用于生成文档
+    - 生成 `HTML` 文档
+        - 使用 `cargo doc` 命令 (使用 `--open` 生成并打开)
+        - 它会使用 `rustdoc` 工具, 为 **Rust** 安装包自带
+        - 生成的 `HTML` 文档位于 `target/doc` 目录下
+    - 显示公共 `API` 的文档注释
+    - 使用 `///`
+    - 支持 `Markdown`
+    - 放置在被说明条目之前
+- 为包含注释的项添加文档注释
+    - 符号: `//!`
+    - 通常用于描述 `crate` 和 模块
+
+```rust
+/// Add x and y
+/// # Examples
+/// ```
+/// let x = 1;
+/// let y = 2;
+///
+/// assert_eq!(add(x, y), 3)
+/// ```
+pub fn add(x: i32, y: i32) -> i32 {
+    x + y
+}
+```
+
+> `pub use`
+
+- 重新导出, 创建一个与内部私有结构不同的对外公共结构
+
+> 发布 `crate`
+
+- 注册 `crates.io` 并生成 `token` (使用 `cargo login` 本地保存凭证)
+- `Cargo.toml` 中一些(必须的)元数据
+    - `name` 包名
+    - `description` 描述
+    - `license` 许可证标识值
+        - 可指定多个, 使用 `OR` 隔开
+    - `version` 版本
+    - `author` 作者
+- 发布: 使用 `cargo publish`
+- `cargo yank` 撤回版本
+    - 不可以删除 `crates.io` 上的版本
+    - 但可以防止其他新项目把它作为依赖
+    - `cargo yank --vers 0.1.0`
+    - `cargo yank --vers 0.1.0 --undo`
+
+> 工作空间
+
+- 类似 `yarn` / `lerna`
+
+```toml
+[workspace]
+
+members = [
+    "proj1",
+    "proj2",
+    # ...
+]
+```
+
+> 安装二进制 `crate`
+
+- `cargo install`
+- 限制: 只能安装具有二进制目标的 `crate`
+- 二进制目标: `binary target`, 是一个可运行程序. 由拥有 `src/main.rs` 或其它被指定为二进制文件的 `crate` 生成
+
+> 使用自定义命令扩展 `cargo`
+
+- 如果环境变量中某个二进制名为 `cargo-xxx`, 则可以使用子命令形式调用
+    - `cargo xxx`
+- 类似的自定义命令可以通过 `cargo --list` 列出
+
 ### 智能指针
 
 - 智能指针通常使用 `struct` 实现, 并且实现了 `Deref` 和 `Drop` 这两个 `trait`
