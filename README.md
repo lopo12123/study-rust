@@ -1492,6 +1492,52 @@ members = [
     - **Rust** 不允许手动调用 `Drop trait` 的 `drop` 方法
     - 可以通过调用标准库的 `std::mem::drop` 函数, 提前 `drop` 某个变量
 
+```rust
+use std::ops::Deref;
+
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+    fn new(x: T) -> MyBox<T> {
+        Self(x)
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = (T);
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> Drop for MyBox<T> {
+    fn drop(&mut self) {
+        println!("i`m going to be dropped!");
+    }
+}
+
+fn say_hello(name: &str) {
+    println!("hello {}", name);
+}
+
+fn deref_drop_example() {
+    let x = 5;
+    let my_box = MyBox::new(x);
+
+    assert_eq!(x, 5);
+    assert_eq!(*my_box, 5);
+    // ↑ 此处 *my_box 即为 *(my_box.deref()), 类似于运算符重载
+
+    let my_name = MyBox::new(String::from("lopo"));
+
+    // &my_name -> &MyBox<String> 类型
+    // 自动执行 deref -> &String
+    // 由于 String 类型实现了 Deref trait
+    // 再次自动执行 deref -> &str
+    say_hello(&my_name);
+}
+```
+
 > `Box<T>`
 
 - [code example](./src/example_box.rs)
@@ -1505,6 +1551,17 @@ members = [
     - 有大量数据想移交所有权但需要确保在操作时数据不会被复制
     - 使用某个值的时候只关心其是否实现了特定的 `trait`, 而不关心其具体类型
 
+```rust
+enum List {
+    Node(i32, Box<List>),
+    End,
+}
+
+fn box_example() {
+    let demo_list = List::Node(1, Box::new(Node(2, Box::new(List::End))));
+}
+```
+
 > `Rc<T>`
 
 - 通过不可变引用, 在程序不同部分之间共享只读数据
@@ -1515,6 +1572,35 @@ members = [
 - `Rc::clone(&xx)` vs `xx.clone()`
     - `Rc::clone(&xx)`: 增加引用计数, 不会执行数据深拷贝
     - `xx.clone()`: 很多会执行数据的深拷贝
+
+```rust
+enum List {
+    Node(i32, Rc<List>),
+    Nil,
+}
+
+use std::rc::Rc;
+use List::{Node, Nil};
+
+fn rc_example() {
+    let a = Rc::new(Node(1,
+                         Rc::new(Node(2,
+                                      Rc::new(Nil))
+                         ),
+    ));
+    println!("strong ref count: {}", Rc::strong_count(&a));  // 1
+
+    let b = Node(3, Rc::clone(&a));
+    println!("strong ref count: {}", Rc::strong_count(&a));  // 2
+
+    {
+        let c = Node(4, Rc::clone(&a));
+        println!("strong ref count: {}", Rc::strong_count(&a));  // 3
+    }
+
+    println!("strong ref count: {}", Rc::strong_count(&a));  // 2
+}
+```
 
 > `RefCell`
 
@@ -1537,6 +1623,58 @@ members = [
 - 其他实现内部可变性的类型
     - `Cell<T>` 通过复制来访问数据
     - `Mutex<T>` 用于实现跨线程情况下的内部可变性模式
+
+```rust
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+
+pub struct LimitTracker<'a, T: 'a + Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl<'a, T> LimitTracker<'a, T>
+    where T: Messenger {
+    pub fn new(messenger: &T, max: usize) -> LimitTracker<T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+    }
+}
+
+#[cfg(test)]
+mod refcell_example {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, msg: &str) {
+            // 使用 borrow_mut 方法获取可变借用
+            self.sent_messages.borrow_mut().push(String::from(msg));
+        }
+    }
+}
+```
 
 ### 多线程
 
@@ -2371,9 +2509,9 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 // lib.rs
 // #[proc_macro_attribute]
 // pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // attr: GET "/" 部分
-    // item: index函数 部分
-    // 其他与 derive 宏类似
+// attr: GET "/" 部分
+// item: index函数 部分
+// 其他与 derive 宏类似
 // }
 ```
 
@@ -2381,7 +2519,7 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
     - 函数宏定义类似于函数调用的宏, 但比普通函数更加灵活
     - 函数宏可以接受 `TokenStream` 作为参数
     - 与另外两种过程宏一样, 在定义中使用 **Rust** 代码来操作 `TokenStream`
-    
+
 ```rust
 // main.rs
 // let sql = sql!(SELECT * FROM posts WHERE id=1);
@@ -2389,6 +2527,6 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 // lib.rs
 // #[proc_macro]
 // pub fn sql(input: TokenStream) -> TokenStream {
-    
+
 // }
 ```
