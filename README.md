@@ -1869,3 +1869,526 @@ fn pattern_example() {
     }
 }
 ```
+
+### 高级特性
+
+> `unsafe`
+
+- 和普通的 **Rust** 一样, 但提供了额外的功能
+- 存在的原因
+    - 静态分析是保守的
+    - 使用 `unsafe rust`, 开发者知道发生的行为并承担相应风险
+    - 计算机硬件本身就是不安全的, **Rust** 需要能够进行底层系统编程
+- 使用 `unsafe` 关键字开启一个块, 里面放 `unsafe` 代码. 可以执行四个动作
+    - 解引用原始指针
+        - 原始指针 (`raw pointer`)
+            - 可变的: `*mut T`
+            - 不可变的: `*const T`, (意味着指针在解引用后不能直接对其赋值)
+        - 与引用不同
+            - 原始指针允许通过同时具有可变和不可变指针或多个可变指针来忽略借用规则
+            - 无法保证能指向合理的内存
+            - 允许为 `null`
+            - 不实现任何自动清理
+        - 原因
+            - 与C语言进行接口交互
+            - 构建借用检查器无法理解的安全抽象
+    - 调用 `unsafe` 函数或方法
+        - `unsafe` 函数或方法: 在定义前加上了 `unsafe` 关键字
+            - 调用前需要手动满足一些条件(主要靠看文档, 因为 **Rust** 无法对这些条件进行验证)
+            - 需要在 `unsafe` 块里进行调用
+        - 创建 `unsafe` 代码的安全抽象
+            - 函数包含 `unsafe` 代码不意味着需要将整个函数标记为 `unsafe`
+            - 将 `unsafe` 代码包裹在安全函数中是一个常见的抽象
+            - 例: 参考标准库函数 `split_at_mut`
+        - 使用 `extern` 函数调用外部代码
+            - `extern` 关键字: 简化创建和使用外部函数接口的过程
+            - 外部函数接口(`FFI, Foreign Function Interface`): 它允许一种编程语言定义函数, 并让其他的编程语言调用该函数
+            - 应用二进制接口(`ABI, Application Binary Interface`): 定义函数在汇编层面的调用方式
+                - `"C"` 是最常见的 **ABI**, 它遵循C语言的 **ABI**
+            - 从其他语言调用 **Rust** 函数
+                - 使用 `extern` 创建接口, 其他语言通过它们可以调用 **Rust** 的函数
+                - 在 `fn` 前添加 `extern` 关键字, 并指定 **ABI**
+                - 还需要添加 `#[no_mangle]` 注解: 避免 **Rust** 在编译时改变其名称
+    - 访问或修改可变的静态变量
+        - **Rust** 支持全局变量, 但因为所有权机制可能产生某些问题(如数据竞争)
+        - 在 **Rust** 中, 全局变量叫做静态(`static`)变量
+            - 与常量类似, 命名使用大写蛇形命名
+            - 必须标注类型
+            - 静态变量只能存储 `'static` 生命周期的引用, 无需显式标注
+            - 访问不可变静态变量是安全的
+        - 常量 vs 静态变量
+            - 静态变量: 有固定的内存地址, 使用它的值总是会访问相同的数据
+            - 常量: 允许使用它们的时候对数据进行复制
+            - 静态变量: 可以是可变的, 访问和修改静态可变变量是不安全(`unsafe`)的
+    - 实现 `unsafe trait`
+        - 声明: 在定义前添加 `unsafe` 关键字, 该 `trait` 只能在 `unsafe` 块中实现
+- 注意
+    - `unsafe` 并没有关闭借用检查或其他安全检查
+    - 任何内存安全相关的错误必须留在 `unsafe` 块中
+    - 尽可能隔离 `unsafe` 代码, 最好将其封装在安全的抽象中, 提供安全的 `API`
+
+```rust
+// 解引用原始指针
+fn unsafe_example_raw_pointer() {
+    let mut num = 1;
+
+    let r1 = &num as *const i32;
+    let r2 = &mut num as *mut i32;
+    unsafe {
+        println!("r1: {}", *r1);  // r1: 1
+        println!("r2: {}", *r2);  // r2: 1
+    }
+
+    let address = 0x012345usize;
+    let r = address as *const i32;
+    unsafe {
+        println!("r: {}", *r);  // 可能会出现 panic, 非法访问
+    }
+}
+
+// 调用 `unsafe` 函数或方法
+unsafe fn dangerous() {}
+
+fn unsafe_example_invoke() {
+    unsafe {
+        dangerous();
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn call_from_c() {
+    println!("hello c, from rust.");
+}
+
+// 访问或修改可变的静态变量
+static mut STATIC_COUNTER: u32 = 0;
+
+fn static_counter_increase() {
+    unsafe {
+        STATIC_COUNTER += 1;
+    }
+}
+
+fn unsafe_example_static() {
+    unsafe {
+        println!("STATIC_COUNTER: {}", STATIC_COUNTER);
+    }
+}
+
+// 实现 `unsafe trait`
+struct MyUnsafeStruct {}
+
+unsafe trait AnUnsafeTrait {
+    // some methods
+}
+
+unsafe impl AnUnsafeTrait for MyUnsafeStruct {
+    // some implementations
+}
+```
+
+> 高级 `trait`
+
+- 在 `trait` 定义中使用关联类型来指定占位类型
+    - 关联类型(`associated type`) 是 `trait` 中的类型占位符, 它可以用于 `trait` 的方法签名中
+    - 关联类型与泛型的区别
+
+| 泛型 | 关联类型 |
+| --- | --- |
+| 每次实现 `trait` 的时候标注类型 | 无需标注类型 |
+| 可以为一个类型多次实现某个 `trati` (使用不同的泛型参数) | 无法为单个类型多次实现某个 `trait` |
+
+```rust
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+- 默认泛型参数和运算符重载
+    - 可以在使用泛型参数时为泛型指定一个默认的具体类型: `<PlaceholderType = DefaultType>`
+    - **Rust** 不允许创建自己的运算符及重载任意的运算符, 但是可以通过实现 `std::ops` 中列出的那些 `trait` 来重载相应的运算符
+    - 默认泛型参数主要使用场景
+        - 扩展一个类型而不破坏现有代码
+        - 允许大部分用户都不需要的特定场景下进行自定义(如: 运算符重载)
+
+```rust
+#[derive(Debug, PartialEq)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Add for Point {
+    type Output = Point;
+
+    fn add(self, other: Point) -> Point {
+        Point {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+fn override_ops_example() {
+    let p1 = Point { x: 1, y: 2 };
+    let p2 = Point { x: 3, y: 4 };
+
+    let p3 = p1.add(p2);
+    println!("p3: {:#?}", p3);
+    // p3: Point { x: 4, y: 6 }
+}
+```
+
+- 完全限定语法 `Fully Qualified Syntax`
+    - `<Type as Trait>::function(receiver_if_method, next_arg, ...);`
+    - 可以在任何调用函数或方法的地方使用
+    - 允许忽略从其他上下文推导出来的部分
+    - 当 **Rust** 无法区分期望使用哪个具体实现时, 才需要使用这种语法
+
+```rust
+trait Pilot {
+    fn fly(&self);
+}
+
+trait Wizard {
+    fn fly(&self);
+}
+
+struct Human;
+
+impl Pilot for Human {
+    fn fly(&self) {
+        print!("pilot fly!");
+    }
+}
+
+impl Wizard for Human {
+    fn fly(&self) {
+        print!("wizard fly!");
+    }
+}
+
+impl Human {
+    fn fly(&self) {
+        print!("human fly!");
+    }
+}
+
+fn fqs_example1() {
+    let me = Human;
+
+    me.fly();  // human fly
+    Pilot::fly(&me);  // pilot fly
+    Wizard::fly(&me);  // wizard fly 
+}
+
+trait Animal {
+    fn name() -> String;
+}
+
+struct Dog {}
+
+impl Dog {
+    fn name() {
+        String::from("Dog")
+    }
+}
+
+impl Animal for Dog {
+    fn name() {
+        String::from("Animal")
+    }
+}
+
+fn fqs_example2() {
+    let name1 = Dog::name();  // Dog
+    let name2 = <Dog as Animal>::name();  // Animal
+}
+```
+
+- 使用 `supertrait` 来要求 `trait` 附带其他 `trait` 的功能
+    - 需要在一个 `trait` 中使用其他 `trait` 的功能
+        - 需要被依赖的 `trait` 也被实现
+        - 被间接依赖的 `trait` 就是当前 `trait` 的 `supertrait`
+
+```rust
+use std::fmt;
+
+trait OutlinePrint: fmt::Display {
+    fn print_outline(&self) {
+        let output = self.to_string();
+        // inner code
+    }
+}
+
+struct Point {
+    x: i32,
+    y: i32
+}
+
+impl OutlinePrint for Point {
+    // inner code
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y);
+    }
+}
+```
+
+- 使用 `newtype` 模式在外部类型上实现外部 `trait`
+    - 孤儿规则: 只有当 `trait` 或类型定义在本地时, 才能为该类型实现该 `trait`
+    - 可以通过 `newtype` 模式绕过这一规则
+        - 利用 `tuple struct` 创建一个新的类型
+
+```rust
+use std::fmt;
+
+struct Wrapper(Vec<String>);
+
+impl fmt::Display for Wrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "));
+    }
+}
+
+fn newtype_example() {
+    let w = Wrapper(vec![
+        String::from("a"),
+        String::from("b"),
+        String::from("c"),
+        String::from("d"),
+    ]);
+    print!("w = {}", w);
+    // w = a, b, c, d
+}
+```
+
+> 高级类型
+
+- 使用 `newtype` 模式实现类型安全和抽象
+    - 静态的保证各种值之间不会混淆并表明值的单位
+    - 为类型的某些细节提供抽象能力
+    - 通过轻量级的封装来隐藏内部实现细节
+- 类型别名
+    - 类似 `typescript`
+- `Never` 类型
+    - 名为 `!` 的特殊类型
+    - 没有任何值(空类型, `empty type`)
+    - 不返回值的函数也被称作发散函数 `diverging function`
+
+```rust
+fn never_example() {
+    let guess = "";
+
+    loop {
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,  // 此处的 continue 是一个返回为 ! 的分支
+        };
+    }
+}
+```
+
+- 动态大小和 `Sized trait`
+    - **Rust** 需要在编译时确定为一个特定类型的值分配多少空间
+    - 动态大小的类型(`DST, Dynamically Sized Type`): 编写代码时使用只有在运行时才能确定大小的值
+    - 动态大小
+        - `str`(注意不是 `&str`) 是动态大小的类型: 只有运行时才能确定字符串的长度
+        - `trait` 是动态大小的类型: 通过名称对其进行引用 (如: `Box<dyn TraitName>`)
+    - `Sized trait`
+        - 为了处理动态大小的类型, **Rust** 提供了一个 `Sized trait` 来确定一个类型的大小在编译时是否已知
+        - 编译时可计算出大小的类型会自动实现这一 `trait`
+        - **Rust** 会为每一个泛型函数隐式地添加 `Sized` 约束
+        - `?Sized` 约束: `T` 可能是也可能不是 `Sized` 的
+
+```rust
+// fn sized_example<T>(t: T) {}
+// ↓ 隐式添加约束
+// fn sized_example<T: Sized>(t: T) {}
+
+//                                   ↓ 由于 T 可能不是 Sized 的, 所以此处需要用引用来使用 t
+fn sized_bound_example<T: ?Sized>(t: &T) {}
+```
+
+> 高级函数和闭包
+
+- 函数指针
+    - 可以将函数传递给其他函数
+    - 函数在传递过程中会被强制转换为 `fn` 类型
+    - `fn` 类型就是函数指针 (`function pointer`)
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+fn do_twice(f: fn(i32) -> i32, arg: i32) -> i32 {
+    f(arg) + f(arg)
+}
+
+fn fn_pointer_example() {
+    let res = do_twice(add_one, 1);
+    println!("res: {}", res);  // res: 3
+}
+```
+
+- 函数指针与闭包的区别
+    - `fn` 是一个类型, 而不是一个 `trait`
+        - 可以直接指定 `fn` 的参数类型, 不用声明一个以 `F trati` 为约束的泛型参数
+    - 函数指针实现了全部三种闭包 `trait`
+        - 总是可以把函数指针用作参数传递给一个接收闭包的函数
+        - 所以倾向于搭配闭包 `trait` 的泛型来编写函数: 可以同时接收闭包和普通函数
+    - 某些情景, 只想接受 `fn` 而不接收闭包
+        - 与外部不支持闭包的代码交互: 如 C函数
+- 返回闭包
+    - 闭包使用 `trait` 进行表达, 无法在函数中直接返回一个闭包, 可以将一个实现了该 `trait` 的具体类型作为返回值
+
+```rust
+// 错误写法
+// fn return_a_closure() -> Fn(i32) -> i32 {
+//     |x| x + 1 
+// }
+// 正确写法
+fn return_a_closure() -> Box<dyn Fn(i32) -> i32> {
+    Box::new(|x| x + 1)
+}
+```
+
+> 宏 `macro`
+
+- 宏在 **Rust** 里指的是一组相关特性的集合称谓
+    - 使用 `macro_rule!` 构建的声明宏 (`declarative macro`)
+    - 三种过程宏
+- 函数与宏的区别
+    - 本质上, 宏是用来编写可以生成其他代码的代码 (元编程, `metaprogramming`)
+    - 函数在定义签名时, 必须声明参数的个数和类型, 宏可以处理可变的参数
+    - 编译器会在解释代码前展开宏
+    - 宏的定义比函数复杂得多, 难以阅读、理解、维护
+    - 在某个文件调用宏时, 必须提前定义宏或将宏引入当前作用域
+    - 函数可以在任何位置定义并在任何位置使用
+- `macro_rules!` 声明宏 (弃用?)
+    - **Rust** 中最常见的宏形式: 声明宏
+        - 类似 `match` 的模式匹配
+        - 需要使用 `macro_rules!`
+
+```rust
+#[macro_export]
+macro_rules! vec {
+    ( $( $x: expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+            )*
+            temp_vec
+        }
+    };
+}
+```
+
+- 基于属性来生成代码的过程宏
+    - 接受并操作输入的 **Rust** 代码
+    - 生成另外一些 **Rust** 代码作为结果
+    - 三种过程宏
+        - 自定义派生
+        - 属性宏
+        - 函数宏
+    - 创建过程宏时, 宏定义必须单独放在它们自己的包中, 并使用特殊的包类型
+
+- 自定义派生
+    - 实例
+        - 创建一个 `hello_macro` 包, 定义一个拥有关联函数 `hello_macro` 的 `HelloMacro trait`
+        - 提供一个能自动实现该 trait 的过程宏
+        - 在它们的类型上标注 `#[derive(HelloMacro)]` 得到 `hello_macro` 的默认实现
+
+```toml
+# Cargo.toml (使用 --lib 创建)
+[package]
+name = "hello_macro_derive"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.14.4"
+quote = "0.6.3"
+```
+
+```rust
+// lib.rs
+extern crate proc_macro;
+
+// 内置 api 接口, 操作 Rust 代码
+use crate::proc_macro::TokenStream;
+// 语法树 -> 代码
+use quote::quote;
+// 代码 -> 语法树
+use syn;
+
+#[proc_macro_derive(HelloMacro)]
+pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust Code
+    // as a syntax tree that we can manipulate.
+    let ast = syn::parse(input).unwrap();
+
+    // build the trait implementation
+    impl_hello_macro(&ast)
+}
+
+fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
+    let name = &ast.ident;
+    let gen = quote!(
+        impl HelloMacro for #name {
+            fn hello_macro() {
+                println!("Hello, Macro!");
+            }
+        }
+    );
+
+    gen.into()
+}
+```
+
+- 属性宏
+    - 属性宏与自定义 `derive` 宏类似
+        - 允许创建新的属性
+        - 但不是为 `derive` 属性生成代码
+    - 属性宏更加灵活
+        - `derive` 只能用于 `struct` 和 `enum`
+        - 属性宏可以用于任意条目, 例如函数
+
+```rust
+// main.rs
+// #[route(GET, "/")]
+// fn index() {}
+
+// lib.rs
+// #[proc_macro_attribute]
+// pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
+    // attr: GET "/" 部分
+    // item: index函数 部分
+    // 其他与 derive 宏类似
+// }
+```
+
+- 函数宏
+    - 函数宏定义类似于函数调用的宏, 但比普通函数更加灵活
+    - 函数宏可以接受 `TokenStream` 作为参数
+    - 与另外两种过程宏一样, 在定义中使用 **Rust** 代码来操作 `TokenStream`
+    
+```rust
+// main.rs
+// let sql = sql!(SELECT * FROM posts WHERE id=1);
+
+// lib.rs
+// #[proc_macro]
+// pub fn sql(input: TokenStream) -> TokenStream {
+    
+// }
+```
