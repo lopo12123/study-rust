@@ -2,10 +2,13 @@
 
 - [Rust 程序设计语言 简体中文版](https://rust.bootcss.com/title-page.html)
 - [crates.io](https://crates.io/)
+- [Rust Async](https://rust-lang.github.io/async-book/)
 
 ## Cargo
 
-> **新建项目** `cargo new project_name`
+### 新建项目
+
+`cargo new project_name`
 
 - 项目结构:
 
@@ -18,26 +21,34 @@ project_name
 - Cargo.lock
 ```
 
-> **构建项目** `cargo build`
+### 构建项目
+
+`cargo build`
 
 - 在目标路径生成可执行文件.
 - 路径: `target/debug/project_name.exe` \(windows\)
 
-**为发布构建** `cargo build --release`
+(为发布构建) `cargo build --release`
 
 - 编译时会进行优化, 代码会运行的更快, 但编译时间更长.
 - 会在 `target/release` 下生成可执行文件, 而不是 `target/debug`
 
-> **构建并运行项目** `cargo run`
+### 构建并运行项目
+
+`cargo run`
 
 - 如果项目编译过但未修改, 则会直接运行二进制文件, 不会重复编译.
 
-> **检查代码** `cargo check`
+### 检查代码
+
+`cargo check`
 
 - 检查代码, 确保能通过编译, 但不会产生任何可执行文件.
 - `cargo check` 比 `cargo build` 快得多, 能连续反复的使用 `cargo check` 检查代码, 提高效率.
 
-> 配置文件 `Cargo.toml` _Tom`s Obvious, Minimal Language_
+### 配置文件
+
+`Cargo.toml` _Tom`s Obvious, Minimal Language_
 
 - 常见字段含义:
 
@@ -89,7 +100,7 @@ color = "> 0.6.0, < 0.8.0"
 
 ### 变量
 
-> **变量与可变性**
+#### 变量与可变性
 
 - 声明变量使用 `let` 关键字
 - 默认情况下变量是不可变(_immutable_)的
@@ -104,7 +115,7 @@ fn mut_example() {
 }
 ```
 
-> **变量与常量**
+#### 变量与常量
 
 - 常量(_constant_)在绑定值后也是不可变的, 但它与不可变变量有很多区别:
     - 不可以使用 `mut`, 常量是永远不可变的
@@ -121,7 +132,7 @@ fn const_example() {
 }
 ```
 
-> **重影 _Shadowing_**
+#### 重影 (Shadowing)
 
 - 可以使用相同的名字声明新的变量(新的类型、新的值), 新的变量会重影(`shadow`)之前声明的变量
 - `shadow` 和把变量标记为 `mut`是不一样的:
@@ -144,7 +155,7 @@ fn shadow_example() {
     - 基于使用的值, 编译器通常能够推断出它的具体类型
     - 但如果可能的类型比较多(如 `String` 的 `parse` 方法), 就必须添加类型标注, 否则就会报编译时错误
 
-> **标量类型**
+#### 标量类型
 
 - 一个标量类型代表一个单个的值
 - **Rust**有四个主要的标量类型
@@ -153,7 +164,7 @@ fn shadow_example() {
     - 布尔类型
     - 字符类型
 
-> > **整数类型**
+##### 整数类型
 
 - 整数类型没有小数部分
 - 无符号以 `u` 开头
@@ -190,7 +201,7 @@ fn shadow_example() {
     - 发布模式(`--release`)下编译, **Rust** 不会检查可能导致 `panic` 的整数溢出
         - 如果溢出发生, 则会执行 _"环绕"_ 操作 (例: `u8` 类型的 `256` 变成 `0`)
 
-> > **浮点类型**
+##### 浮点类型
 
 - 浮点类型含有小数部分
 - **Rust** 有两种基础的浮点类型
@@ -210,13 +221,13 @@ fn calculate_example() {
 }
 ```
 
-> > **布尔类型**
+##### 布尔类型
 
 - **Rust** 的布尔类型也有两个值: `true` 和 `false`
 - 占用一个字节大小
 - 符号为 `bool`
 
-> > **字符类型**
+##### 字符类型
 
 - **Rust** 中的 `char` 类型被用来描述单个字符
 - 字符类型的字面量使用单引号 `'`
@@ -233,12 +244,12 @@ fn char_example() {
 }
 ```
 
-> **复合类型**
+#### 复合类型
 
 - 复合类型可以将多个值放在一个类型里
 - **Rust** 提供了两种基础的复合类型: 元组(`Tuple`) 和 数组(`Array`)
 
-> > 元组
+##### 元组
 
 - 元组可以将多个类型的多个值放在一个类型中
 - 元组的长度是固定的, 一旦声明就无法改变
@@ -257,7 +268,7 @@ fn tuple_example() {
 }
 ```
 
-> > 数组
+##### 数组
 
 - 数组也可以将多个类型的多个值放在一个类型中
 - 数组的长度是固定的, 且其中的每个元素类型必须相同
@@ -353,7 +364,7 @@ fn for_example() {
     - 变量的作用域就是程序中一个项目的有效范围
     - 当变量离开作用域时会自动执行一个 `drop` 函数
 
-> 变量和数据交互的方式
+#### 变量和数据交互的方式
 
 - 移动(`Move`)
     - 多个变量可以与同一个数据使用一种独特的方式来交互
@@ -389,7 +400,7 @@ fn move_and_clone_example() {
 }
 ```
 
-> 所有权与函数
+#### 所有权与函数
 
 - 在语义上, 将值传递给函数和将值赋值给变量是类似的(值会发生**移动**或**复制**)
 - 函数的返回值在过程中同样也会发生所有权的转移
@@ -397,7 +408,7 @@ fn move_and_clone_example() {
     - 将一个值赋值给其他变量时就会发生移动
     - 当一个包含 `Heap` 的数据的变量离开作用域时, 它的值就会被 `drop` 函数清理(除非数据所有权移动到了另一个变量上)
 
-> 引用和借用
+#### 引用和借用
 
 - `&` 符号表示引用: 允许引用某些之但不获得其所有权
 - 把引用作为函数参数的行为叫借用
@@ -406,7 +417,7 @@ fn move_and_clone_example() {
     - 可变引用有一个重要限制: 在特定作用域内, 对某一数据只能有一个可变引用(可以在编译时防止数据竞争)
     - 另一个限制: 不可以同时拥有一个可变引用和一(多)个不可变引用
 
-> 切片
+#### 切片
 
 - **Rust** 的另一种不持有所有权的数据类型
 - 形式: `&Origin[start, end]`
@@ -489,7 +500,7 @@ fn tuple_struct_example() {
 }
 ```
 
-> `Struct` 的 方法 / 关联函数
+#### Struct 的 方法 / 关联函数
 
 - 方法和函数类似: `fn` 关键字、名称、参数、返回值
 - 方法和函数不同之处
@@ -513,7 +524,7 @@ impl Rectangle {
 
 ### 枚举与模式匹配
 
-> 枚举 `enum`
+#### 枚举 enum
 
 ```rust
 // 定义
@@ -553,9 +564,9 @@ enum Option<T> {
 }
 ```
 
-> 模式匹配
+#### 模式匹配
 
-> > `match`
+##### match
 
 - 允许一个值与一系列模式进行匹配, 并执行匹配的模式对应的代码
 - 模式可以是字面量、变量名、通配符等
@@ -579,7 +590,7 @@ fn match_example() {
 }
 ```
 
-> > `if let`
+##### if let
 
 - 只关心一种匹配而忽略其他匹配的情况
 - 更少的代码、更少的缩进、更少的模板代码
@@ -606,7 +617,7 @@ fn if_let_example() {
     - `Module`(模块)、`use`: 能够控制代码的组织、作用域、私有路径
     - `Path`(路径): 为 `struct`、`function`、`module`等命名的方式
 
-> `Cargo` 的惯例
+#### Cargo 的惯例
 
 - `src/main.rs` 是 `binary crate` 的 `crate root`, 且 `crate` 名与 `package` 名相同
 - `src/lib.rs` 是 `library crate` 的 `crate root`, 且 `crate` 名与 `package` 名相同
@@ -616,26 +627,26 @@ fn if_let_example() {
     - 文件放在 `src/bin`
     - 每个文件都是单独的 `binary crate`
 
-> `Package`
+#### Package
 
 - 一个 `Package` 包含 - **1** 个 `Cargo.toml`, 他描述了如何构建这些 `crate`
 - 只能包含 **0-1** 个 `library crate`
 - 可以包含 **任意数量** 的 `binary crate`
 - 必须至少包含一个 `crate`(`binary` 或 `library`)
 
-> `Crate`
+#### Crate
 
 - 类型: `binary` 或 `library`
 - 作用: 将相关功能放到一个作用域内, 便于在项目间进行共享(防止冲突)
 - `crate Root` 是源代码文件, **Rust** 编译器从这里开始构建 `crate` 根的 `Module`
 
-> `Module`
+#### Module
 
 - 在一个 `crate` 内, 将代码进行分组
 - 使用 `mod` 关键字, 可嵌套
 - 可以包含其他项(`struct`, `enum`, `trait`, 常量, 函数等)的定义
 
-> `Path`
+#### Path
 
 - 为了在 **Rust** 的模块中找到某个条目, 需要使用路径
 - 路径的两种形式
@@ -643,7 +654,7 @@ fn if_let_example() {
     - 相对路径: 从当前模块开始, 使用 `self`, `super` 或当前模块的标识符
 - 路径至少由一个标识符组成, 标识符之间使用 `::`
 
-> 私有边界 `privacy boundary`
+#### 私有边界 (privacy boundary)
 
 - 模块不仅可以组织代码, 还可以定义私有边界
 - 如果想把函数 或 `struct` 等设为私有, 可以将它放到某个模块中
@@ -715,7 +726,7 @@ fn use_example() {
 
 ### 常用集合
 
-> `Vector`
+#### Vector
 
 - 类型为 `Vec<T>`
 - 由标准库提供
@@ -755,7 +766,7 @@ fn vector_example() {
 }
 ```
 
-> `String`
+#### String
 
 - **Rust** 的 **核心语言层面**, 只有一个字符串类型: 字符串切片 `&str`
     - 字符串切片: 对存储在其他地方的 `UTF-8` 编码的字符串的引用
@@ -809,7 +820,7 @@ fn string_example() {
 }
 ```
 
-> `HashMap`
+#### HashMap
 
 - 类型 `HashMap<K, V>`
 - 键值对的形式存储, 一个键 `K` 对应一个值 `V`
@@ -877,7 +888,7 @@ fn hashmap_example() {
 
 ### 错误处理
 
-> **可恢复错误** 和 **不可恢复错误**
+#### 可恢复错误 和 不可恢复错误
 
 - 可恢复错误 `Result<T, E>`
     - 例: 文件未找到, 可再次尝试
@@ -923,7 +934,7 @@ fn result_example() {
 }
 ```
 
-> `unwrap` 和 `expect` 和 `?`运算符
+#### unwrap 和 expect 和 ? 运算符
 
 - `unwrap(self)`:
     - 如果成功, 则直接返回 `Result::Ok` 里的值,
@@ -939,9 +950,9 @@ fn result_example() {
     - 如果成功, `Ok(res)` 中的 `res`作为表达式的结果, 函数继续执行
     - 如果失败, 整个函数返回 `Err(err)`, 相当于执行了 `return Err(err)`
 
-### 泛型、`Trait`、生命周期
+### 泛型、Trait、生命周期
 
-> 泛型
+#### 泛型
 
 - 提高代码复用能力
 - 是具体类型或其他属性的抽象代替
@@ -952,7 +963,7 @@ fn result_example() {
 - `fn largest<T>(list: &[T]) -> T {...}`
 - 性能和普通代码一致, 因为编译器会执行单态化(类似`c++`)
 
-> `Trait`
+#### Trait
 
 - 把方法签名放在一起, 定义实现某种目的所必须的一组行为 (类似抽象类)
     - 关键字 `trait`
@@ -1007,7 +1018,7 @@ fn trait_as_result_example() -> impl Summary {
 }
 ```
 
-> 生命周期
+#### 生命周期
 
 - 引用保持有效的作用域
     - 避免垂悬引用 (`dangling reference`)
@@ -1134,7 +1145,7 @@ fn longest_with_an_announcement<'a, T>
 - 当使用 `cargo` 创建 `library` 项目时, 会生成一个 `test module`, 里面有一个 `test` 函数
     - 可以有任意数量的 `test module` 和 `test` 函数
 
-> 断言
+#### 断言
 
 - `assert!` 测试 `bool`
     - 断言失败: 输出 `FAILED`
@@ -1150,7 +1161,7 @@ fn longest_with_an_announcement<'a, T>
     - 返回 `Ok`: 测试通过
     - 返回 `Err`: 测试失败
 
-> `cargo test`
+#### cargo test
 
 - 默认行为
     - 并行运行
@@ -1179,7 +1190,7 @@ fn longest_with_an_announcement<'a, T>
         - 使用 `#[ignore]` 标记忽略测试函数
         - 使用 `cargo test -- --ignored` 只运行被标记为忽略的测试函数
 
-> 单元测试 / 集成测试
+#### 单元测试 / 集成测试
 
 - 单元测试
     - 一次对一个模块进行隔离的测试
@@ -1219,7 +1230,7 @@ fn longest_with_an_announcement<'a, T>
 
 ### 闭包、迭代器
 
-> 闭包 `closure`
+#### 闭包 (closure)
 
 - 基本
     - 闭包是可以捕获其所在环境的匿名函数
@@ -1283,7 +1294,7 @@ fn closure_in_struct_example() {}
     - 不可变借用: `Fn`, 无需可变访问捕获变量的闭包实现了 `Fn`
     - `move` 关键字: 在参数列表前使用 `move` 关键字, 可以强制闭包取得它所使用的环境值的所有权
 
-> 迭代器 `iterator`
+#### 迭代器 (iterator)
 
 - **Rust** 的迭代器: 除非调用消费迭代器的方法, 否则迭代器本身没有任何效果
 - `Iterator trait`
@@ -1346,7 +1357,7 @@ impl Iterator for Counter {
 
 ### 构建、发布
 
-> release profile
+#### release profile
 
 - 是预定义的(可自定义: 可使用不同的配置, 对代码编译有更多的配置)
 - 每个 `profile` 的配置都独立于其他的 `profile`
@@ -1372,7 +1383,7 @@ opt-level = 0  # opt-level 是代码的优化程度 (越大优化越高, 所需�
 opt-level = 3
 ```
 
-> 发布包到 `crates.io`
+#### 发布包到 crates.io
 
 - 文档注释: 用于生成文档
     - 生成 `HTML` 文档
@@ -1401,11 +1412,11 @@ pub fn add(x: i32, y: i32) -> i32 {
 }
 ```
 
-> `pub use`
+##### pub use
 
 - 重新导出, 创建一个与内部私有结构不同的对外公共结构
 
-> 发布 `crate`
+##### 发布 crate
 
 - 注册 `crates.io` 并生成 `token` (使用 `cargo login` 本地保存凭证)
 - `Cargo.toml` 中一些(必须的)元数据
@@ -1422,7 +1433,7 @@ pub fn add(x: i32, y: i32) -> i32 {
     - `cargo yank --vers 0.1.0`
     - `cargo yank --vers 0.1.0 --undo`
 
-> 工作空间
+##### 工作空间
 
 - 类似 `yarn` / `lerna`
 
@@ -1436,13 +1447,13 @@ members = [
 ]
 ```
 
-> 安装二进制 `crate`
+##### 安装二进制 crate
 
 - `cargo install`
 - 限制: 只能安装具有二进制目标的 `crate`
 - 二进制目标: `binary target`, 是一个可运行程序. 由拥有 `src/main.rs` 或其它被指定为二进制文件的 `crate` 生成
 
-> 使用自定义命令扩展 `cargo`
+##### 使用自定义命令扩展 cargo
 
 - 如果环境变量中某个二进制名为 `cargo-xxx`, 则可以使用子命令形式调用
     - `cargo xxx`
@@ -1470,7 +1481,7 @@ members = [
 
 其中: 即使 `RefCell<T>` 本身不可变, 但仍能修改其中存储的值
 
-> `Deref` & `Drop`
+#### Deref & Drop
 
 - [code example](./src/example_deref_drop.rs)
 - `Deref`: `dereference`
@@ -1538,7 +1549,7 @@ fn deref_drop_example() {
 }
 ```
 
-> `Box<T>`
+#### Box<T>
 
 - [code example](./src/example_box.rs)
 - `Box<T>` 是最简单的智能指针(类似链表)
@@ -1562,7 +1573,7 @@ fn box_example() {
 }
 ```
 
-> `Rc<T>`
+#### Rc<T>
 
 - 通过不可变引用, 在程序不同部分之间共享只读数据
 - 在没有任何所有者时自动清理数据
@@ -1602,7 +1613,7 @@ fn rc_example() {
 }
 ```
 
-> `RefCell`
+#### RefCell
 
 - [code example](./src/example_refcell.rs)
 - 与 `Rc<T>` 一样, 只适用于单线程场景
@@ -1681,7 +1692,7 @@ mod refcell_example {
 - `concurrent`: 程序不同部分之间独立的执行(并发)
 - `parallel`: 程序不同部分之间同时运行(并行)
 
-> 进程和线程
+#### 进程和线程
 
 - 大部分OS中, 代码运行在进程(`process`)中, OS同时管理多个进程
 - 程序中各个独立的部分可以同时运行, 这些独立部分就是线程(`thread`)
@@ -1696,7 +1707,7 @@ mod refcell_example {
     - 语言自己实现的线程(绿色线程): `M:N` 模型 (需要更大的运行时)
     - **Rust** 标准库仅提供 `1:1` 模型的线程
 
-> 多线程执行
+#### 多线程执行
 
 - 使用 `thread::spawn` 创建新线程, 其返回值类型为 `JoinHandle`
 - `JoinHandle` 持有值的所有权, 调用其 `join` 方法可以等待对应线程完成
@@ -1736,7 +1747,7 @@ fn move_example() {
 }
 ```
 
-> 消息传递
+#### 消息传递
 
 - 一种很流行且能保证安全并发的技术: 消息传递, 线程(或 `actor`)通过彼此发送消息来进行通信
 - `Channel`
@@ -1812,7 +1823,7 @@ fn recv_example() {
 }
 ```
 
-> 共享实现并发
+#### 共享实现并发
 
 - `channel` 类似单所有权: 一旦将值的所有权转移到 `channel`, 就无法再使用它
 - **Rust** 支持通过共享状态来实现并发. 共享内存并发类似多所有权: 多个线程可以同时访问一块内存
@@ -1852,7 +1863,7 @@ fn main() {
 }
 ```
 
-> `Send` 和 `Sync`
+#### Send 和 Sync
 
 - **Rust** 中有两个并发概念: `std::marker::Sync` 和 `std::marker::Send`
 - `Send`: 允许线程间转移所有权
@@ -1901,7 +1912,7 @@ fn main() {
 - 如果要使用模式, 就要将其与某个值进行比较
     - 如果模式匹配, 就能使用这个值的相应部分
 
-> 模式
+#### 模式
 
 - `match`
     - 要求: 穷尽(分支必须包含所有的可能性)
@@ -1922,14 +1933,14 @@ fn main() {
 - 函数参数
     - 参数也可以是模式(类似 `javascript` 直接形参解构写法)
 
-> 可辩驳性
+#### 可辩驳性
 
 - 无可辩驳的: 能匹配任何可能传递的值 (例: `let x = 5;`)
 - 可辨驳的: 对某些可能的值, 无法进行匹配 (例: `if let Some(x) = 5`)
 - 函数参数、`let` 语句、`for` 循环只接受无可辩驳的模式
 - `if let`、`while let` 接受可辨驳和无可辩驳(会`warning`)的模式
 
-> 模式(匹配)语法
+#### 模式(匹配)语法
 
 - 字面量: 可以直接匹配
 - 命名变量: 是可匹配任何值的无可辩驳模式
@@ -2010,7 +2021,7 @@ fn pattern_example() {
 
 ### 高级特性
 
-> `unsafe`
+#### unsafe
 
 - 和普通的 **Rust** 一样, 但提供了额外的功能
 - 存在的原因
@@ -2125,7 +2136,7 @@ unsafe impl AnUnsafeTrait for MyUnsafeStruct {
 }
 ```
 
-> 高级 `trait`
+#### 高级 trait
 
 - 在 `trait` 定义中使用关联类型来指定占位类型
     - 关联类型(`associated type`) 是 `trait` 中的类型占位符, 它可以用于 `trait` 的方法签名中
@@ -2305,7 +2316,7 @@ fn newtype_example() {
 }
 ```
 
-> 高级类型
+#### 高级类型
 
 - 使用 `newtype` 模式实现类型安全和抽象
     - 静态的保证各种值之间不会混淆并表明值的单位
@@ -2352,7 +2363,7 @@ fn never_example() {
 fn sized_bound_example<T: ?Sized>(t: &T) {}
 ```
 
-> 高级函数和闭包
+#### 高级函数和闭包
 
 - 函数指针
     - 可以将函数传递给其他函数
@@ -2396,7 +2407,7 @@ fn return_a_closure() -> Box<dyn Fn(i32) -> i32> {
 }
 ```
 
-> 宏 `macro`
+#### 宏 macro
 
 - 宏在 **Rust** 里指的是一组相关特性的集合称谓
     - 使用 `macro_rule!` 构建的声明宏 (`declarative macro`)
@@ -2530,3 +2541,23 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 
 // }
 ```
+
+## Rust Async
+
+### 并发模型
+
+#### 其他的并发模型
+
+- **OS线程**
+    - 无需改变编程模型, 线程间同步困难, 性能开销大
+    - 线程池可以降低一些成本, 但难以支撑大量IO绑定的工作
+- **Event-driven 编程**
+    - 与回调函数一起用, 可能高效
+    - 非线性的控制流, 数据流和错误传播难以追踪
+- **Coroutines**
+    - 类似线程, 无需改变编程模型
+    - 类似 `async`, 支持大量任务
+    - 抽象掉了底层细节 (这对系统编程、自定义运行时的实现很重要)
+- **Actor模型**
+    - 将所有并发计算划分为`actor`, 消息通信易出错
+    - 可以有效地实现`actor`模型, 但有许多实际问题没有解决 (例如流控制、重试逻辑)
