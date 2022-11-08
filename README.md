@@ -2561,3 +2561,136 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 - **Actor模型**
     - 将所有并发计算划分为`actor`, 消息通信易出错
     - 可以有效地实现`actor`模型, 但有许多实际问题没有解决 (例如流控制、重试逻辑)
+
+#### Rust 的并发模型
+
+- **Future 是惰性的**
+    - 只有 poll 时才能取得进展; 被丢弃的 future 就无法取得进展了
+- **Async 是零成本的**
+    - 使用 async, 可以无需堆内存分配(heap allocation) 和动态调度(dynamic dispatch), 对性能大好, 且允许在受限环境使用 async
+- **不提供内置运行时**
+    - 运行时由社区提供
+- **单线程、多线程均支持**
+    - 但优缺点不同
+
+#### Rust 的 Async 和 线程 (thread)
+
+- OS 线程
+    - 适用于少量任务, 有内存和CPU开销, 且线程生成和线程间切换非常昂贵
+    - 线程池可以降低一些成本
+    - 允许重用同步代码, 代码无需大概, 无需特定编程模型
+    - 有些系统支持修改线程优先级
+- Async
+    - 显著降低内存和CPU开销
+    - 同等条件下, 支持比线程多几个数量级的任务 (少数线程支撑大量任务)
+    - 可执行文件大 (需要生成状态机, 每个可执行文件捆绑一个异步运行时)
+
+```rust
+fn get_two_site() {
+    // spawn two threads to do work.
+    let thread1 = thread::spawn(|| download("https://resource1.com"));
+    let thread2 = thread::spawn(|| download("https://resource2.com"));
+
+    // wait for both threads to complete
+    thread1.join().expect("thread1 panicked!");
+    thread2.join().expect("thread2 panicked!");
+}
+
+async fn get_two_site_async() {
+    // create two different "future" which, when run to completion,
+    // will asynchronously download the resources.
+    let future1 = download_async("https://resource1.com");
+    let future2 = download_async("https://resource2.com");
+
+    // run both futures to completion at the same time.
+    join!(future1, future2);
+}
+```
+
+#### Async Rust 目前的状态
+
+- 部分稳定, 部分仍在变化
+- 特点
+    - 针对典型并发任务, 性能出色
+    - 与高级语言特性频繁交互 (生命周期, pinning)
+    - 同步和异步代码间、不同运行时的异步代码间存在兼容性约束
+    - 由于不断进化, 维护负担更重
+
+#### 语言和库的支持
+
+- 虽然 Rust 本身就支持 async 编程, 但很多应用依赖于社区的库
+    - 标准库提供了最基本的特性、类型和功能, 例如 `Future trait`
+    - async/await 语法直接被 Rust 编译器支持
+    - future crate 提供了许多实用类型、宏和函数, 它们可以用于任何异步应用程序
+    - 异步代码、IO和任务生成的执行由 "async runtime" 提供, 例如 Tokio 和 async-std. 大多数 async 应用程序和一些 async crate 都依赖于特定的运行时
+- Rust 不允许在 trait 里声明 async 函数
+
+#### 兼容性考虑
+
+- async 和同步代码不能总是自由组合
+    - 例如: 不能直接从同步代码调用异步函数
+- async 代码间也不总是能自由组合
+    - 一些 crate 依赖于特定的 async 运行时
+
+#### async/await
+
+##### async
+
+- async 把一段代码转换为一个实现了 Future trait 的状态机
+- 虽然在同步方法中调用阻塞函数会阻塞整个线程, 但阻塞的 Future 会放弃对线程的控制, 从而允许其他 Future 来运行
+
+##### async fn
+
+- 异步函数语法
+    - `async fn do_something() { /** ... */ }`
+    - async fn 返回的是 Future, Future需要由一个执行者来运行
+- `futures::executor::block_on`
+    - `block_on` 阻塞当前线程, 直到提供的 Future 运行完成为止
+    - 其他执行者提供更为复杂的行为, 例如将多个 Future 安排到同一个线程上
+
+```rust
+use futures::executor::block_on;
+
+async fn hello_world() {
+    println!("hello world!");
+}
+
+fn main() {
+    let future = hello_world();  // 什么都没打印出来 (未执行 future)
+    block_on(future);  // future 运行, 并打印出 'hello world!'
+}
+```
+
+##### await
+
+- 在 async fn 中, 可以使用 `.await` 来等待另一个实现 Future trait 的完成
+- 与 `block_on` 不同, `.await` 不会阻塞当前线程, 而是异步的等待 Future 的完成 (如果该 Future 目前无法取得进展, 就允许其他任务运行)
+
+```rust
+use futures::executor::block_on;
+
+struct Song {}
+
+async fn learn_song() -> Song {
+    Song {}
+}
+
+async fn sing_song(song: Song) {}
+
+async fn dance() {}
+
+async fn learn_and_sing() {
+    let song = learn_song().await;
+    sing_song(song).await;
+}
+
+async fn async_main() {
+    let f1 = learn_and_sing();
+    let f2 = dance();
+    futures::join!(f1, f2);
+}
+
+fn main() {
+    block_on(async_main());
+}
+```
