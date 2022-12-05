@@ -2694,3 +2694,156 @@ fn main() {
     block_on(async_main());
 }
 ```
+
+### Future trait
+
+- 是 Rust Async 编程的核心
+- Future 是一种异步计算, 它可以产生一个值
+- 实现了 Future 的类型表示*目前可能还不可用的值*
+- Future 代表一种你可以**检验是否完成**的操作
+- Future 可以通过调用 poll 函数来取得进展
+    - poll 函数会驱动 Future 尽可能接近完成
+    - 如果 Future 完成了: 返回 poll::Ready(result), 其中 result 就是最终的结果
+    - 如果 Future 还没完成: 返回 poll::Pending, 当 Future 准备好取得更多进展时调用一个 waker 的 `wake()` 函数
+
+#### Wake() 函数
+
+- 当 `wake()` 函数被调用时
+    - 执行器将驱动 Future 再次调用 poll 函数, 以便 Future 能取得更多的进展
+- 没有 `wake()` 函数, 执行器就不知道特定的 Future 何时能取得进展 (就得不断的 poll)
+- 通过 `wake()` 函数, 执行器就能确切的知道哪些 Future 已经准备好进行 `poll()` 的调用
+
+- 例子1
+    - 实现简化的 Future
+
+```rust
+trait SimpleFuture {
+    type Output;
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output>;
+}
+
+enum Poll<T> {
+    Ready(T),
+    Pending,
+}
+
+pub struct SocketRead<'a> {
+    socket: &'a Socket,
+}
+
+impl SimpleFuture for SocketRead<'_> {
+    type Output = Vec<u8>;
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output> {
+        if self.socket.has_data_to_read() {
+            // The socket has data -- read it into a buffer and return it.
+            Poll::Ready(self.socket.read_buf())
+        } else {
+            // The socket does not yet have data
+            //
+            // Arrange fr `wake` to be called once data is available.
+            // When data becomes available, `wake` will be called, and the user
+            // of this `Future` will know to call `poll` again and receive data.
+            self.socket.st_readable_callback(wake);
+            Poll::Pending
+        }
+    }
+}
+```
+
+- 例子2
+    - 组合多个异步操作, 而无需中间分配
+    - 可以通过无分配的状态机来实现多个 Future 同时运行或串联运行
+
+```rust
+trait SimpleFuture {
+    type Output;
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output>;
+}
+
+enum Poll<T> {
+    Ready(T),
+    Pending,
+}
+
+pub struct Join<FutureA, FutureB> {
+    // Each field may contain a future that should be run to completion.
+    // If the future has already completed, the field is set to `None`,
+    // This prevent us from polling a future after it has complete,
+    // which violate the contract of the `Future` trait
+    a: Option<FutureA>,
+    b: Option<FutureB>,
+}
+
+impl<FutureA, FutureB> SimpleFuture for Join<FutureA, FutureB>
+    where
+        FutureA: SimpleFuture<Output=()>,
+        FutureB: SimpleFuture<Output=()> {
+    type Output = ();
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output> {
+        // Attempt to complete future `a`
+        if let Some(a) = &mut self.a {
+            if let Poll::Ready(()) = a.poll(wake) {
+                self.a.take();
+            }
+        }
+
+        // Attempt to complete future `b`
+        if let Some(b) = &mut self.b {
+            if let Poll::Ready(()) = b.poll(wake) {
+                self.b.take();
+            }
+        }
+
+        if self.a.is_none() && self.b.is_none() {
+            // Both futures have completed -- we can return successfully
+            Poll::Ready(())
+        } else {
+            // One or both futures returned `Poll::Pending` and still have
+            // work to do. They will `wake()` when progress can be make.
+            Poll::Pending
+        }
+    }
+}
+```
+
+- 例子3
+    - 多个连续的 Future 一个接一个的执行
+
+```rust
+trait SimpleFuture {
+    type Output;
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output>;
+}
+
+enum Poll<T> {
+    Ready(T),
+    Pending,
+}
+
+pub struct AndThenFut<FutureA, FutureB> {
+    first: Option<FutureA>,
+    second: FutureB,
+}
+
+impl<FutureA, FutureB> SimpleFuture for AndThenFut<FutureA, FutureB>
+    where
+        FutureA: SimpleFuture<Output=()>,
+        FutureB: SimpleFuture<Output=()> {
+    type Output = ();
+    fn poll(&mut self, wake: fn()) -> Poll<Self::Output> {
+        if let Some(first) = &mut self.first {
+            match first.poll(wake) {
+                // We`ve completed the first future -- remove it and start on the second!
+                Poll::Ready(()) => self.first.take(),
+                // We couldn`t yet complete the first future.
+                Poll::Pending => return Poll::Pending,
+            };
+        }
+        // Now that thw first future is done, attempt to complete the second.
+        self.second.poll(wake)
+    }
+}
+```
+
+- 真正的 Future trait
+    - todo!
