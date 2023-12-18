@@ -13,12 +13,12 @@
 - 项目结构:
 
 ```yaml
-project_name
-- src
-  - main.rs
-- .gitignore
-- Cargo.toml
-- Cargo.lock
+project_name:
+  - src
+    - main.rs
+  - .gitignore
+  - Cargo.toml
+  - Cargo.lock
 ```
 
 ### 构建项目
@@ -171,14 +171,14 @@ fn shadow_example() {
 - 有符号以 `i` 开头
 - **Rust**的整数类型列表如下
 
-| length | signed | unsigned |
-| --- | --- | --- |
-| 8-bit | i8 | u8 |
-| 16-bit | i16 | u16 |
-| 32-bit | i32 | u32 |
-| 64-bit | i64 | u64 |
-| 128-bit | i128 | u128 |
-| arch | isize | usize |
+| length  | signed | unsigned |
+|---------|--------|----------|
+| 8-bit   | i8     | u8       |
+| 16-bit  | i16    | u16      |
+| 32-bit  | i32    | u32      |
+| 64-bit  | i64    | u64      |
+| 128-bit | i128   | u128     |
+| arch    | isize  | usize    |
 
 - `izise` 和 `usize` 类型的位数由程序运行的计算机的架构决定
     - 如果是64位计算机, 那么就是64位的
@@ -188,13 +188,13 @@ fn shadow_example() {
     - 如果不清楚该使用什么类型, 则可以使用相应的默认类型
         - 整数的默认类型是 `i32`
 
-| 进制 | 例子 |
-| --- | --- |
-| Decimal | `10_000` |
-| Hex | `0xff` |
-| Octal | `0o77` |
-| Binary | `0b11` |
-| Byte(`u8` only) | `b'A'` |
+| 进制              | 例子       |
+|-----------------|----------|
+| Decimal         | `10_000` |
+| Hex             | `0xff`   |
+| Octal           | `0o77`   |
+| Binary          | `0b11`   |
+| Byte(`u8` only) | `b'A'`   |
 
 - 整数溢出
     - 调试模式下编译, **Rust** 会检查整数溢出, 如果发生整数溢出则会导致 `panic`
@@ -342,7 +342,8 @@ fn for_example() {
 
 - **Rust** 的核心特性就是所有权
 - 所有语言在运行时都必须管理他们使用计算机内存的方式
-    - 有的语言有垃圾收集机制(`Gabrage Collect, GC`), 在程序运行时会不断寻找不再使用的内存. 如: `C#`, `Java`, `JavaScript` 等
+    - 有的语言有垃圾收集机制(`Gabrage Collect, GC`), 在程序运行时会不断寻找不再使用的内存.
+      如: `C#`, `Java`, `JavaScript` 等
     - 有的语言必须显式地分配和释放内存. 如: `C`, `C++` 等
     - **Rust** 使用了第三种方式, 通过一个所有权系统来管理, 其包含了一组编译器在编译时检查的规则
 - 栈`Stack` vs 堆`Heap`
@@ -390,7 +391,7 @@ fn move_and_clone_example() {
     println!("x: {}, y: {}", x, y);  // x: 5, y: 5
 
     // 在堆上的数据, 所有权发生转移, s2赋值后s1将失效
-    let s1 = String::new("rust");
+    let s1 = String::from("rust");
     let s2 = s1;
     println!("s1: {}, s2: {}", s1, s2);  // panic: borrow of moved value "s1"
 
@@ -775,7 +776,8 @@ fn vector_example() {
     - 来自 **标准库** 而不是核心语言
     - 可增长、可修改、可获得所有权
     - `UTF-8` 编码
-    - 是对 `Vec<u8>` 的包装, `len()` 方法 返回的是 `Unicode` 标量值, 而非常规意义的字符数 (不支持索引形式访问, 用索引方式进行访问会报错)
+    - 是对 `Vec<u8>` 的包装, `len()` 方法 返回的是 `Unicode` 标量值, 而非常规意义的字符数 (不支持索引形式访问,
+      用索引方式进行访问会报错)
 - 字节`Bytes`、标量值`Scalar Values`、字形簇`Grapheme Clusters`
     - 遍历字节 `for b in s.bytes() {}`
     - 遍历`Unicode`标量值 `for c in s.chars() {}`
@@ -1039,12 +1041,14 @@ fn trait_as_result_example() -> impl Summary {
 - 生命周期省略的三个规则 (适用于 `fn` 和 `impl`)
     - 规则1: 每个引用类型的参数都有自己的生命周期
     - 规则2: 如果只有一个输入生命周期参数, 那么该生命周期被赋给所有的输出生命周期参数
-    - 规则3: (只适用于方法) 如果有多个输入生命周期参数, 但其中一个是 `&self` 或 `&mut self`, 那么 `self` 的生命周期会被赋给所有的输出生命周期参数
+    - 规则3: (只适用于方法) 如果有多个输入生命周期参数, 但其中一个是 `&self` 或 `&mut self`, 那么 `self`
+      的生命周期会被赋给所有的输出生命周期参数
 - 函数定义中的声明周期标注
     - 泛型生命周期参数声明在在函数名和参数列表之间的 `<>` 里
     - 指定生命周期参数的方式依赖于函数所做的事
         - 从函数返回引用时, 返回类型的生命周期参数需要与其中一个参数的生命周期匹配
-        - 如果返回的引用没有指向任何参数, 那么它只能引用函数内创建的值(发生了悬垂引用, 因为该值在函数结束时结束了其生命周期)
+        - 如果返回的引用没有指向任何参数, 那么它只能引用函数内创建的值(发生了悬垂引用,
+          因为该值在函数结束时结束了其生命周期)
 - 结构体定义中的生命周期标注(见下 `code example`)
 - 方法定义中的生命周期标注
     - 在 `struct` 上使用生命周期实现方法, 语法和泛型参数的语法一致
@@ -1473,17 +1477,16 @@ members = [
     - 行为和指针类似
     - 有额外的元数据和功能
 
-|   | `Box<T>` | `Rc<T>` | `RefCell<T>` |  
-| --- | --- | --- | --- |
-| 同一数据的所有者 | 一个 | 多个 | 一个 |
-| 可变性 | 可变/不可变 | 不可变 | 可变/不可变 |
-| 借用检查 | 编译时检查 | 编译时检查 | 运行时检查 |
+|          | `Box<T>` | `Rc<T>` | `RefCell<T>` |  
+|----------|----------|---------|--------------|
+| 同一数据的所有者 | 一个       | 多个      | 一个           |
+| 可变性      | 可变/不可变   | 不可变     | 可变/不可变       |
+| 借用检查     | 编译时检查    | 编译时检查   | 运行时检查        |
 
 其中: 即使 `RefCell<T>` 本身不可变, 但仍能修改其中存储的值
 
 #### Deref & Drop
 
-- [code example](./src/example_deref_drop.rs)
 - `Deref`: `dereference`
     - 函数和方法的隐式解引用转化 `Deref Coercion`
     - 假设 `T` 实现了 `Deref trait`
@@ -1551,7 +1554,6 @@ fn deref_drop_example() {
 
 #### Box<T>
 
-- [code example](./src/example_box.rs)
 - `Box<T>` 是最简单的智能指针(类似链表)
 - 允许在 `heap` 上存储数据
 - `stack` 上只存储了指向 `heap` 数据的指针
@@ -1615,7 +1617,6 @@ fn rc_example() {
 
 #### RefCell
 
-- [code example](./src/example_refcell.rs)
 - 与 `Rc<T>` 一样, 只适用于单线程场景
 - 与 `Rc<T>` 不同, `RefCell<T>` 类型代表了其持有数据的唯一所有权
 - 内部可变性 `interior mutability`
@@ -2142,9 +2143,9 @@ unsafe impl AnUnsafeTrait for MyUnsafeStruct {
     - 关联类型(`associated type`) 是 `trait` 中的类型占位符, 它可以用于 `trait` 的方法签名中
     - 关联类型与泛型的区别
 
-| 泛型 | 关联类型 |
-| --- | --- |
-| 每次实现 `trait` 的时候标注类型 | 无需标注类型 |
+| 泛型                                | 关联类型                  |
+|-----------------------------------|-----------------------|
+| 每次实现 `trait` 的时候标注类型              | 无需标注类型                |
 | 可以为一个类型多次实现某个 `trait` (使用不同的泛型参数) | 无法为单个类型多次实现某个 `trait` |
 
 ```rust
@@ -2567,7 +2568,8 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 - **Future 是惰性的**
     - 只有 poll 时才能取得进展; 被丢弃的 future 就无法取得进展了
 - **Async 是零成本的**
-    - 使用 async, 可以无需堆内存分配(heap allocation) 和动态调度(dynamic dispatch), 对性能大好, 且允许在受限环境使用 async
+    - 使用 async, 可以无需堆内存分配(heap allocation) 和动态调度(dynamic dispatch), 对性能大好, 且允许在受限环境使用
+      async
 - **不提供内置运行时**
     - 运行时由社区提供
 - **单线程、多线程均支持**
@@ -2622,7 +2624,8 @@ async fn get_two_site_async() {
     - 标准库提供了最基本的特性、类型和功能, 例如 `Future trait`
     - async/await 语法直接被 Rust 编译器支持
     - future crate 提供了许多实用类型、宏和函数, 它们可以用于任何异步应用程序
-    - 异步代码、IO和任务生成的执行由 "async runtime" 提供, 例如 Tokio 和 async-std. 大多数 async 应用程序和一些 async crate 都依赖于特定的运行时
+    - 异步代码、IO和任务生成的执行由 "async runtime" 提供, 例如 Tokio 和 async-std. 大多数 async 应用程序和一些 async
+      crate 都依赖于特定的运行时
 - Rust 不允许在 trait 里声明 async 函数
 
 #### 兼容性考虑
@@ -2664,7 +2667,8 @@ fn main() {
 ##### await
 
 - 在 async fn 中, 可以使用 `.await` 来等待另一个实现 Future trait 的完成
-- 与 `block_on` 不同, `.await` 不会阻塞当前线程, 而是异步的等待 Future 的完成 (如果该 Future 目前无法取得进展, 就允许其他任务运行)
+- 与 `block_on` 不同, `.await` 不会阻塞当前线程, 而是异步的等待 Future 的完成 (如果该 Future 目前无法取得进展,
+  就允许其他任务运行)
 
 ```rust
 use futures::executor::block_on;
