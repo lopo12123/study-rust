@@ -158,7 +158,127 @@ fn closure_test() {
     println!("closure: {}; struct: {}; &String: {}; u32: {}", size_of_val(&closure4), size_of_val(&alt4), size_of::<&String>(), size_of::<u32>());
     // closure: 16; struct: 16; &String: 8; u32: 4
 }
+
 // ========== ========== ========== ==========
+
+// #![feature(unboxed_closures)]
+// #![feature(fn_traits)]
+//
+// struct MyCallableStruct {}
+//
+// impl FnOnce<()> for MyCallableStruct {
+//     type Output = String;
+//
+//     extern "rust-call" fn call_once(self, _args: ()) -> String {
+//         // 在这里定义调用结构体时的行为
+//         format!("call with no args")
+//     }
+// }
+//
+// fn main() {
+//     let callable = MyCallableStruct {};
+//     let result = callable();
+//     println!("result is: {}", result);
+// }
+
+// ========== ========== ========== ==========
+
+#[test]
+fn fn_test() {
+    fn caller<F>(f: F) where F: Fn(u32) {
+        // first call
+        f(1);
+
+        // second call
+        f(2);
+    }
+
+    let var = 1;
+    let my_fn = |num| println!("{}: captured var is: {}", num, var);
+
+    caller(my_fn);
+    // => 1: captured var is: 1
+    // => 2: captured var is: 1
+}
+
+#[test]
+fn fn_mut_test() {
+    fn caller<F>(mut f: F) where F: FnMut(u32) {
+        // first call
+        f(1);
+
+        // second call
+        f(2);
+    }
+
+    let mut var = 1;
+    let my_mut_fn = |num| {
+        var += 1;
+        println!("{}: captured var is: {}", num, var)
+    };
+
+    caller(my_mut_fn);
+    // => 1: captured var is: 2
+    // => 2: captured var is: 3
+}
+
+#[test]
+fn fn_once_test() {
+    fn caller<F>(f: F) where F: FnOnce(u32) {
+        // first call
+        f(1);
+        // => 1: captured var is: 1
+
+        // second call -- won't compile cause f can only be called once
+        // f(2);
+    }
+
+    let var = 1;
+    let my_once_fn = |num| println!("{}: captured var is: {}", num, var);
+
+    caller(my_once_fn);
+}
+
+#[test]
+fn type_test() {
+    fn need_fn(f: impl Fn()) {
+        f();
+    }
+    fn need_fn_mut(mut f: impl FnMut()) {
+        f();
+    }
+    fn need_fn_once(f: impl FnOnce()) {
+        f();
+    }
+
+    let my_fn = || println!("hello");
+
+    let mut var = 1;
+    let mut my_mut_fn = || {
+        var += 1;
+        println!("captured var is: {}", var)
+    };
+
+    // 1. MATCH: expect Fn, got Fn
+    need_fn(my_fn);
+    // => hello
+
+    // 2. MATCH: expect FnMut, got FnMut
+    need_fn_mut(&mut my_mut_fn);
+    // => captured var is: 2
+
+    // 3. MISMATCH: expect FnOnce, got Fn
+    need_fn_once(my_fn);
+    // => hello
+
+    // 4. MISMATCH: expect FnOnce, got FnMut
+    need_fn_once(&mut my_mut_fn);
+    // => captured var is: 3
+
+    // 5. MISMATCH: expect FnMut, got Fn
+    need_fn_mut(my_fn);
+    // => hello
+}
 
 #[test]
 fn size_compare() {
